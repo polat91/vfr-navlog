@@ -127,6 +127,7 @@ details summary{cursor:pointer;font:600 1.05rem var(--f-display);letter-spacing:
     <label class="f">Tescil<input id="reg" data-k="reg"></label>
     <label class="f">Tarih (gün/ay/yıl)<input id="date" type="date" data-k="date"></label>
     <label class="f">ETD kalkış (yerel, UTC+3)<input id="etd" type="time" data-k="etd"></label>
+    <label class="f">Kalkış pisti<select id="rwy" data-k="rwy"><option value="04">RWY 04</option><option value="22">RWY 22</option></select></label>
     <label class="f">Seyir hızı<input id="spdCruise" type="number" step="1" data-k="spdCruise" data-num></label>
     <label class="f">Girilen hız tipi<select id="spdMode" data-k="spdMode"><option value="IAS">IAS</option><option value="TAS">TAS</option></select></label>
     <label class="f">Tırmanış IAS (kt)<input id="iasClimb" type="number" step="1" data-k="iasClimb" data-num></label>
@@ -184,6 +185,11 @@ details summary{cursor:pointer;font:600 1.05rem var(--f-display);letter-spacing:
     <div class="tot" id="kRemBox"><div class="k">Tahmini kalan yakıt</div><div class="v" id="kRem">–</div></div>
     <div class="tot"><div class="k">ETA LTBU (yerel)</div><div class="v" id="kEta">–</div></div>
   </div>
+  <h2 style="margin-top:18px" id="altTitle"></h2>
+  <div class="sheet"><table class="nav" id="altNav" style="min-width:760px"><thead><tr>
+    <th>Bölüm</th><th id="altThSpd">IAS / TAS</th><th>Course (T)</th><th>Course (M)</th><th>WCA</th><th>HDG (M)</th><th>GS</th><th>Dist (nm)</th><th>Time</th></tr></thead>
+    <tbody id="altBody"></tbody></table></div>
+  <p class="note" id="altNote" style="margin-top:8px"></p>
 </section>
 
 <section class="two">
@@ -229,11 +235,11 @@ details summary{cursor:pointer;font:600 1.05rem var(--f-display);letter-spacing:
     <label class="f">RWY 22 eşiği boylam<input id="thr2Lon" type="number" step="0.0001" data-k="thr2Lon" data-num></label>
     <label class="f">Meydan rakımı (ft)<input id="elev" type="number" step="1" data-k="elev" data-num></label>
     <label class="f">Kalkış koşusu (nm)<input id="roll" type="number" step="0.05" data-k="roll" data-num></label>
-    <label class="f">Sola dönüş irtifası (ft)<input id="turnAlt" type="number" step="100" data-k="turnAlt" data-num></label>
+    <label class="f">Dönüş irtifası (ft)<input id="turnAlt" type="number" step="100" data-k="turnAlt" data-num></label>
     <label class="f">Dönüş yatışı (°)<input id="bank" type="number" step="1" data-k="bank" data-num></label>
   </div>
-  <p class="note" style="margin-top:10px"><b>Kalkış profili:</b> RWY 04 eşiğinden kalkış koşusu, ardından pist yönünde tırmanış IAS ve tırmanış oranıyla dönüş irtifasına kadar düz tırmanış. Orada sola dönülür (dönüş yarıçapı TAS ve yatış açısından), dönüşten çıkışta Velimeşe'ye düz uçulur; tırmanış ilk bacağın plan irtifasına kadar sürer. Mesafe bu yol boyunca ölçülür, direkt değildir. Velimeşe'den Pınarca'ya dönüşte bir sonraki plan irtifasına tırmanış, Pınarhisar'dan Turgutbey'e dönüşte alçalma başlar; ilgili satırda TOC/BOD mesafesi gösterilir.</p>
-  <p class="note"><b>Koordinat kaynakları:</b> Velimeşe, Vize, Pınarhisar, Saray: Wikipedia; Pınarca, Turgutbey: GeoNames; Pınarbaşı: köyün güneyindeki E80 (D-100) kavşağı, Google Maps üzerinden işaretlenen nokta; LTBU pist eşikleri: SkyVector. Velimeşe yalnızca dakika hassasiyetinde (41°15′K 27°53′D) bulundu; Google Maps'ten kontrol edip değiştirebilirsiniz. Değişiklikler tarayıcıda saklanır.</p>
+  <p class="note" style="margin-top:10px"><b>Kalkış profili:</b> Seçilen pistin eşiğinden kalkış koşusu, ardından pist yönünde tırmanış IAS ve tırmanış oranıyla dönüş irtifasına kadar düz tırmanış. Orada Velimeşe'ye en kısa yönde dönülür (RWY 04'te sola, RWY 22'de sağa; dönüş yarıçapı TAS ve yatış açısından), dönüşten çıkışta Velimeşe'ye düz uçulur; tırmanış ilk bacağın plan irtifasına kadar sürer. Mesafe bu yol boyunca ölçülür, direkt değildir. Velimeşe'den Pınarca'ya dönüşte bir sonraki plan irtifasına tırmanış, Pınarhisar'dan Turgutbey'e dönüşte alçalma başlar; ilgili satırda TOC/BOD mesafesi gösterilir.</p>
+  <p class="note"><b>Koordinat kaynakları:</b> Pınarca, Saray, Vize, Pınarhisar, Turgutbey ve Pınarbaşı (köyün güneyindeki E80 kavşağı): Google Maps üzerinden işaretlenen noktalar; Velimeşe: Wikipedia; LTBU pist eşikleri: SkyVector. Velimeşe yalnızca dakika hassasiyetinde (41°15′K 27°53′D) bulundu; Google Maps'ten kontrol edip değiştirebilirsiniz. Değişiklikler tarayıcıda saklanır.</p>
 </details>
 
 <p class="note no-print">Bu araç planlama yardımcısıdır; resmi NOTAM, METAR/TAF ve AIP bilgileriyle kontrol edilmelidir.</p>
@@ -245,18 +251,18 @@ details summary{cursor:pointer;font:600 1.05rem var(--f-display);letter-spacing:
 const DEF_WPS=[
   {id:"LTBU",name:"LTBU",lat:41.1383,lon:27.9191},
   {id:"VLM",name:"Velimeşe",lat:41.2500,lon:27.8830},
-  {id:"PNC",name:"Pınarca",lat:41.3403,lon:28.0218},
-  {id:"SRY",name:"Saray",lat:41.4411,lon:27.9216},
-  {id:"VZE",name:"Vize",lat:41.5736,lon:27.7653},
-  {id:"PNH",name:"Pınarhisar",lat:41.6281,lon:27.5122},
-  {id:"TRG",name:"Turgutbey",lat:41.4592,lon:27.3880},
+  {id:"PNC",name:"Pınarca",lat:41.338567,lon:28.016231},
+  {id:"SRY",name:"Saray",lat:41.444650,lon:27.919633},
+  {id:"VZE",name:"Vize",lat:41.573435,lon:27.766920},
+  {id:"PNH",name:"Pınarhisar",lat:41.625057,lon:27.519025},
+  {id:"TRG",name:"Turgutbey",lat:41.459459,lon:27.387931},
   {id:"PNB",name:"Pınarbaşı",lat:41.3648,lon:27.6083}
 ];
 const ROUTE=[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,1],[1,0]];
 const DEF_ALTS=[2000,2500,2500,2500,2500,1500,1500,1500,1500];
 function todayStr(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
 function defaults(){return{
-  pilot:"",reg:"TC-",date:todayStr(),etd:"09:00",spdCruise:100,spdMode:"IAS",iasClimb:74,roc:700,rod:500,qnh:1013,qnhAuto:true,vari:5,
+  pilot:"",reg:"TC-",date:todayStr(),etd:"09:00",rwy:"04",spdCruise:100,spdMode:"IAS",iasClimb:74,roc:700,rod:500,qnh:1013,qnhAuto:true,vari:5,
   fuel:50,gph:9,taxi:1,reserve:30,src:"openmeteo",omModel:"ecmwf",windyKey:"",windyModel:"gfs",
   thrLat:41.1295,thrLon:27.9055,thr2Lat:41.1472,thr2Lon:27.9325,elev:570,roll:0.25,turnAlt:1500,bank:15,
   wps:DEF_WPS.map(w=>({...w})),
@@ -265,7 +271,7 @@ function defaults(){return{
   arr:{icao:"LTBU / 570 ft",qnh:"",xpdr:"",gnd:"121.900",twr:"120.375",app:"119.925",vor:"114.80",ils:"110.50",wind:""},
   rmk:""
 }}
-const LS="vfrNavlogLTBU.v2";
+const LS="vfrNavlogLTBU.v3";
 let S=defaults();
 try{const raw=localStorage.getItem(LS);if(raw){const o=JSON.parse(raw);S={...S,...o,dep:{...S.dep,...(o.dep||{})},arr:{...S.arr,...(o.arr||{})}};
   if(!Array.isArray(S.wps)||S.wps.length!==DEF_WPS.length)S.wps=DEF_WPS.map(w=>({...w}));
@@ -403,23 +409,39 @@ async function fetchWindy(){
 }
 
 /* ---------- departure path ---------- */
-function departure(tasClimb,ctx){
+function departure(tasClimb,ctx,rwy){
   const o=S.wps[0];const thr={lat:S.thrLat,lon:S.thrLon},thr2={lat:S.thr2Lat,lon:S.thr2Lon};
-  const P0=enu(o,thr),T=enu(o,S.wps[1]);const rh=brgXY(P0,enu(o,thr2));
+  const [A,B]=rwy==="22"?[thr2,thr]:[thr,thr2];
+  const P0=enu(o,A),T=enu(o,S.wps[1]);const rh=brgXY(P0,enu(o,B));
   const gA=triangle(rh,tasClimb,ctx.wd,ctx.ws);const gsA=isFinite(gA.gs)?gA.gs:tasClimb;
   const climbA=Math.max(0,S.turnAlt-S.elev);const tA=climbA/S.roc; // min
   const dA=S.roll+gsA*tA/60;
   const tRoll=S.roll/30*60;
   let p={x:P0.x+dA*Math.sin(rh*D2R),y:P0.y+dA*Math.cos(rh*D2R)};
   const P1={...p};
-  // left turn, radius from TAS & bank: r = V^2/(g tanφ)
+  // turn toward Velimeşe the short way; radius from TAS & bank: r = V^2/(g tanφ)
+  const dir=n180(brgXY(p,T)-rh)<0?-1:1; // -1 left, +1 right
   const v=tasClimb*0.514444;const r=(v*v/(9.80665*Math.tan(Math.max(5,S.bank)*D2R)))/1852;
   let hdg=rh,arc=0;const path=[P0,P1];const step=1;
-  for(let k=0;k<720;k++){const rel=n180(brgXY(p,T)-hdg);if(rel>=0||distXY(p,T)<0.05)break;
-    const mid=hdg-step/2;const ds=r*step*D2R;p={x:p.x+ds*Math.sin(mid*D2R),y:p.y+ds*Math.cos(mid*D2R)};hdg=n360(hdg-step);arc+=ds;path.push({...p})}
+  for(let k=0;k<720;k++){const rel=n180(brgXY(p,T)-hdg);if(rel*dir<=0||distXY(p,T)<0.05)break;
+    const mid=hdg+dir*step/2;const ds=r*step*D2R;p={x:p.x+ds*Math.sin(mid*D2R),y:p.y+ds*Math.cos(mid*D2R)};hdg=n360(hdg+dir*step);arc+=ds;path.push({...p})}
   const tcB=brgXY(p,T),sB=distXY(p,T);path.push(T);
   const tArc=arc/tasClimb*60;
-  return{rh,dA,tA:tA+tRoll,gsA,thA:gA.th,wcaA:gA.wca,P1,exit:p,r,arc,tArc,tcB,sB,path,turnDeg:n360(rh-hdg)};
+  return{rwy,dir,rh,dA,tA:tA+tRoll,gsA,thA:gA.th,wcaA:gA.wca,P1,exit:p,r,arc,tArc,tcB,sB,path,turnDeg:n360(dir*(hdg-rh))};
+}
+// first leg (departure) for a given runway: two sub-segments and the leg totals
+function depLeg(rwy,climbTas,ctx,sp,alt,to){
+  const D=departure(climbTas,ctx,rwy);const subs=[];
+  subs.push({label:`RWY ${rwy} → ${S.turnAlt} ft`,tc:D.rh,wca:D.wcaA,th:D.thA,gs:D.gsA,dist:D.dA,time:D.tA,spdTxt:`${Math.round(S.iasClimb)} / ${Math.round(climbTas)}`});
+  const gB=triangle(D.tcB,climbTas,ctx.wd,ctx.ws);const gsBc=isFinite(gB.gs)?gB.gs:climbTas;
+  const gC=triangle(D.tcB,sp.tas,ctx.wd,ctx.ws);
+  let need=Math.max(0,alt-S.turnAlt)-S.roc*D.tArc;let tB=D.tArc,dClimb=0;
+  if(need>0){const t=need/S.roc;dClimb=Math.min(D.sB,gsBc*t/60);tB+=dClimb/gsBc*60+(D.sB-dClimb)/gC.gs*60;}
+  else tB+=D.sB/gC.gs*60;
+  subs.push({label:`${D.dir<0?"Sola":"Sağa"} ${Math.round(D.turnDeg)}° dönüş → ${to.name}`,tc:D.tcB,wca:gC.wca,th:gC.th,gs:gC.gs,dist:D.arc+D.sB,time:tB,
+    spdTxt:`${Math.round(sp.ias)} / ${Math.round(sp.tas)}`,hint:`dönüş ${f1(D.arc)} nm + düz ${f1(D.sB)} nm`});
+  const note=need>0?`${alt} ft'e dönüş çıkışından ${f1(dClimb)} nm sonra`:`${alt} ft'e dönüşte`;
+  return{dep:D,subs,note,dist:D.dA+D.arc+D.sB,time:D.tA+tB,tc:D.tcB,th:gC.th,gs:gC.gs,wca:gC.wca};
 }
 
 /* ---------- compute ---------- */
@@ -455,19 +477,9 @@ function compute(){
     const ctx={wd:isFinite(wd)?wd:0,ws:isFinite(ws)?ws:0};
     const row={i,fi,ti,alt,oat,sp,wd,ws,start:clock,subs:[],note:"",cmp,spread};
     if(i===0){
-      const D=departure(climbTas,ctx);row.dep=D;
-      // seg A: runway heading climb
-      row.subs.push({label:`RWY 04 → ${S.turnAlt} ft`,tc:D.rh,wca:D.wcaA,th:D.thA,gs:D.gsA,dist:D.dA,time:D.tA,spdTxt:`${Math.round(S.iasClimb)} / ${Math.round(climbTas)}`});
-      // seg B: left turn + straight, climbing turnAlt -> alt
-      const gB=triangle(D.tcB,climbTas,ctx.wd,ctx.ws);const gsBc=isFinite(gB.gs)?gB.gs:climbTas;
-      const gC=triangle(D.tcB,sp.tas,ctx.wd,ctx.ws);
-      let need=Math.max(0,alt-S.turnAlt)-S.roc*D.tArc;let tB=D.tArc,dClimb=0;
-      if(need>0){const t=need/S.roc;dClimb=Math.min(D.sB,gsBc*t/60);tB+=dClimb/gsBc*60+(D.sB-dClimb)/gC.gs*60;}
-      else tB+=D.sB/gC.gs*60;
-      row.subs.push({label:`Sola ${Math.round(D.turnDeg)}° dönüş → ${to.name}`,tc:D.tcB,wca:gC.wca,th:gC.th,gs:gC.gs,dist:D.arc+D.sB,time:tB,
-        spdTxt:`${Math.round(sp.ias)} / ${Math.round(sp.tas)}`,hint:`dönüş ${f1(D.arc)} nm + düz ${f1(D.sB)} nm`});
-      row.note=need>0?`${alt} ft'e dönüş çıkışından ${f1(dClimb)} nm sonra`:`${alt} ft'e dönüşte`;
-      row.dist=D.dA+D.arc+D.sB;row.time=D.tA+tB;row.tc=D.tcB;row.th=gC.th;row.gs=gC.gs;row.wca=gC.wca;
+      const other=S.rwy==="22"?"04":"22";
+      Object.assign(row,depLeg(S.rwy,climbTas,ctx,sp,alt,to));
+      row.alt=depLeg(other,climbTas,ctx,sp,alt,to);row.alt.rwy=other;
     }else{
       const g=gc(from,to);row.tc=g.brg;row.dist=g.d;
       const t=triangle(g.brg,sp.tas,ctx.wd,ctx.ws);row.wca=t.wca;row.th=t.th;row.gs=t.gs;
@@ -533,7 +545,17 @@ function render(res){
   $("kTime").textContent=Math.floor(time/60)+" sa "+Math.round(time%60)+" dk";
   $("kReq").textContent=f1(req)+" gal";$("kRem").textContent=f1(rem)+" gal";$("kEta").textContent=fmtClock(etdMin()+time);
   $("kRemBox").classList.toggle("warn",rem-S.reserve/60*S.gph<0);
-  drawMap(res);
+  renderAlt(res);drawMap(res);
+}
+function renderAlt(res){
+  const r0=res[0],A=r0.alt;if(!A)return;const V=S.vari;
+  $("altTitle").textContent=`Alternatif: RWY ${A.rwy} kalkışı ile ilk bacak`;
+  $("altThSpd").textContent=S.spdMode==="TAS"?"TAS / IAS":"IAS / TAS";
+  const cell=s=>`<td>${s.spdTxt}</td><td class="calc">${f0(s.tc)}</td><td class="calc">${f0(n360(s.tc-V))}</td><td class="calc">${isFinite(s.wca)?(s.wca>=0?"+":"−")+Math.abs(Math.round(s.wca)):"–"}</td><td class="calc">${f0(n360(s.th-V))}</td><td class="calc">${Math.round(s.gs)}</td><td class="calc">${f1(s.dist)}</td><td class="calc">${fmtT(s.time)}</td>`;
+  $("altBody").innerHTML=A.subs.map(s=>`<tr class="sub"><td class="ft">${s.label}${s.hint?`<span class="hint">${s.hint}</span>`:""}</td>${cell(s)}</tr>`).join("")+
+    `<tr class="leg"><td class="ft">LTBU → ${S.wps[1].name.toLocaleUpperCase("tr")} toplam</td><td></td><td class="calc">${f0(A.tc)}</td><td class="calc">${f0(n360(A.tc-V))}</td><td></td><td class="calc">${f0(n360(A.th-V))}</td><td class="calc">${Math.round(A.gs)}</td><td class="calc">${f1(A.dist)}</td><td class="calc">${fmtT(A.time)}<span class="hint">${A.note}</span></td></tr>`;
+  const dd=A.dist-r0.dist,dt=A.time-r0.time;
+  $("altNote").textContent=`RWY ${A.rwy} ile kalkışta ilk bacak RWY ${S.rwy}'e göre ${Math.abs(dd).toFixed(1)} nm ${dd>=0?"daha uzun":"daha kısa"} ve ${Math.abs(Math.round(dt*60))} saniye ${dt>=0?"daha uzun":"daha kısa"} sürer; tüm navlogu RWY ${A.rwy} ile hesaplamak için yukarıdan kalkış pistini değiştirin.`;
 }
 function drawMap(res){
   const o=S.wps[0];const pts=S.wps.map(w=>enu(o,w));const D=res[0].dep;
