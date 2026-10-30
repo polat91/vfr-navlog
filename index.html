@@ -1,0 +1,612 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>VFR Navlog LTBU</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one column "clipboard" — flight data, wind source, navlog sheet, dep/arr box, tools, coordinates. */
+:root{
+  --bg:#e9eef2; --panel:#ffffff; --ink:#132130; --muted:#5a6b7b; --line:#c6d2dc; --grid:#dbe4eb;
+  --accent:#0a6a94; --accent-ink:#ffffff; --hand:#1b3f9e; --warn:#a24b07; --ok:#2c7a4b; --chip:#e3edf4;
+  --f-display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0c151e; --panel:#13202d; --ink:#e2eaf1; --muted:#8fa3b5; --line:#2a3f53; --grid:#1f3142;
+  --accent:#4cb0de; --accent-ink:#06131c; --hand:#9db8ff; --warn:#f0a35e; --ok:#6fcf97; --chip:#1b2d3e; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0c151e; --panel:#13202d; --ink:#e2eaf1; --muted:#8fa3b5; --line:#2a3f53; --grid:#1f3142;
+  --accent:#4cb0de; --accent-ink:#06131c; --hand:#9db8ff; --warn:#f0a35e; --ok:#6fcf97; --chip:#1b2d3e; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 var(--f-body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.wrap{max-width:1180px;margin:0 auto;display:grid;gap:18px}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;border-bottom:3px solid var(--ink);padding-bottom:10px}
+h1{font:700 2.4rem/1 var(--f-display);letter-spacing:.04em;margin:0;text-transform:uppercase}
+h1 small{display:block;font:500 .95rem/1.3 var(--f-body);letter-spacing:0;text-transform:none;color:var(--muted);margin-top:6px}
+h2{font:600 1.25rem/1.1 var(--f-display);letter-spacing:.06em;text-transform:uppercase;margin:0 0 10px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;min-width:0}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.fields{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px 14px}
+label.f{display:grid;gap:3px;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);min-width:0}
+input,select{font:500 .95rem var(--f-mono);color:var(--hand);background:transparent;border:0;border-bottom:1.5px solid var(--line);padding:4px 2px;width:100%;min-width:0;border-radius:0}
+input:focus,select:focus{outline:none;border-bottom-color:var(--accent);background:var(--chip)}
+input[type=date],input[type=time]{color-scheme:inherit}
+button{font:600 .9rem var(--f-body);border:1.5px solid var(--accent);background:var(--accent);color:var(--accent-ink);padding:8px 14px;border-radius:4px;cursor:pointer}
+button.ghost{background:transparent;color:var(--accent)}
+button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button:disabled{opacity:.5;cursor:wait}
+a{color:var(--accent)}
+.status{font-size:.88rem;color:var(--muted);min-height:1.3em}
+.status.err{color:var(--warn)} .status.ok{color:var(--ok)}
+.src{display:flex;gap:0;border:1.5px solid var(--accent);border-radius:4px;overflow:hidden}
+.src label{padding:7px 12px;cursor:pointer;font-weight:600;font-size:.88rem;color:var(--accent)}
+.src input{display:none}
+.src label:has(input:checked){background:var(--accent);color:var(--accent-ink)}
+.note{font-size:.82rem;color:var(--muted);max-width:75ch}
+.note b{color:var(--ink)}
+/* navlog sheet */
+.sheet{overflow-x:auto;border:1.5px solid var(--ink);border-radius:2px;background:var(--panel)}
+table.nav{border-collapse:collapse;width:100%;min-width:1060px;font-variant-numeric:tabular-nums}
+table.nav th{font:600 .74rem/1.1 var(--f-display);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:7px 4px;border:1px solid var(--line);background:var(--chip)}
+table.nav td{border:1px solid var(--grid);padding:4px 5px;text-align:center;font:500 .92rem var(--f-mono);vertical-align:middle}
+table.nav td.calc{color:var(--hand);font-weight:600}
+table.nav td.ft{text-align:left;font:600 .92rem var(--f-body);white-space:nowrap}
+table.nav td.ft span{display:block}
+table.nav td.ft span+span{border-top:1px solid var(--grid);margin-top:2px;padding-top:2px}
+table.nav tr.leg td{border-top:1.5px solid var(--line)}
+table.nav tr.sub td{font-size:.84rem;background:color-mix(in srgb,var(--chip) 45%,transparent)}
+table.nav tr.sub td.ft{font:500 .82rem var(--f-body);color:var(--muted);padding-left:14px}
+table.nav td input{text-align:center;width:4.4em;font-size:.9rem;padding:2px}
+table.nav td input.w{width:3.4em}
+table.nav td .wv{display:flex;align-items:center;justify-content:center;gap:2px}
+table.nav td .cmp{display:block;font:400 .64rem/1.25 var(--f-mono);color:var(--muted);white-space:nowrap}
+table.nav td .cmp.bad{color:var(--warn);font-weight:600}
+table.nav td .tag{display:block;font:500 .66rem var(--f-body);color:var(--warn);letter-spacing:.04em;cursor:pointer}
+table.nav td .hint{display:block;font:400 .68rem/1.2 var(--f-body);color:var(--muted);max-width:11em;margin-inline:auto}
+table.nav tfoot td{font-weight:700;border-top:2px solid var(--ink)}
+.totals{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.tot{border-left:3px solid var(--accent);padding:4px 10px}
+.tot .k{font:.72rem var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.tot .v{font:600 1.35rem var(--f-mono);color:var(--ink)}
+.tot.warn{border-left-color:var(--warn)} .tot.warn .v{color:var(--warn)}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px}
+table.box{border-collapse:collapse;width:100%}
+table.box td{border:1px solid var(--grid);padding:3px 6px;font-size:.84rem}
+table.box td:first-child{color:var(--muted);width:44%}
+table.box input{border:0}
+.tbl{overflow-x:auto}
+table.co{border-collapse:collapse;width:100%;min-width:560px;font-variant-numeric:tabular-nums}
+table.co th,table.co td{border-bottom:1px solid var(--grid);padding:4px 6px;text-align:left;font-size:.86rem}
+table.co th{font:600 .72rem var(--f-display);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+table.co input{width:7.5em}
+.conv{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px 14px;align-items:end}
+.out{font:600 1.05rem var(--f-mono);color:var(--hand)}
+svg.map{width:100%;max-width:100%;height:auto;display:block}
+svg.map text{font:500 11px var(--f-body);fill:var(--ink)}
+svg.map .lbl{paint-order:stroke;stroke:var(--panel);stroke-width:3px}
+details summary{cursor:pointer;font:600 1.05rem var(--f-display);letter-spacing:.06em;text-transform:uppercase}
+.no-print{}
+@media (max-width:520px){h1{font-size:1.9rem}}
+@media print{
+  @page{size:A4 landscape;margin:8mm}
+  body{background:#fff;color:#000;padding:0}
+  .no-print,details,.src,button{display:none!important}
+  .panel{border:0;padding:4px 0}
+  .sheet{overflow:visible;border-color:#000}
+  table.nav{min-width:0;font-size:10px}
+  input,select{color:#000;border-bottom:0}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <h1>VFR Navlog<small>LTBU · Velimeşe · Pınarca · Saray · Vize · Pınarhisar · Turgutbey · Pınarbaşı · Velimeşe · LTBU</small></h1>
+  <div class="row no-print">
+    <button class="ghost" id="btnPrint" type="button">Yazdır / PDF</button>
+    <button class="ghost" id="btnReset" type="button">Varsayılana dön</button>
+  </div>
+</header>
+
+<section class="panel">
+  <h2>Uçuş bilgileri</h2>
+  <div class="fields">
+    <label class="f">Pilot<input id="pilot" data-k="pilot"></label>
+    <label class="f">Tescil<input id="reg" data-k="reg"></label>
+    <label class="f">Tarih (gün/ay/yıl)<input id="date" type="date" data-k="date"></label>
+    <label class="f">ETD kalkış (yerel, UTC+3)<input id="etd" type="time" data-k="etd"></label>
+    <label class="f">Seyir hızı<input id="spdCruise" type="number" step="1" data-k="spdCruise" data-num></label>
+    <label class="f">Girilen hız tipi<select id="spdMode" data-k="spdMode"><option value="IAS">IAS</option><option value="TAS">TAS</option></select></label>
+    <label class="f">Tırmanış IAS (kt)<input id="iasClimb" type="number" step="1" data-k="iasClimb" data-num></label>
+    <label class="f">Tırmanış oranı (ft/dk)<input id="roc" type="number" step="50" data-k="roc" data-num></label>
+    <label class="f">Alçalma oranı (ft/dk)<input id="rod" type="number" step="50" data-k="rod" data-num></label>
+    <label class="f">QNH (hPa)<input id="qnh" type="number" step="1" data-k="qnh" data-num></label>
+    <label class="f">Varyasyon (°E +, °W −)<input id="vari" type="number" step="0.5" data-k="vari" data-num></label>
+    <label class="f">Kullanılabilir yakıt (US gal)<input id="fuel" type="number" step="0.5" data-k="fuel" data-num></label>
+    <label class="f">Yakıt sarfiyatı (GPH)<input id="gph" type="number" step="0.1" data-k="gph" data-num></label>
+    <label class="f">Taksi/kalkış yakıtı (gal)<input id="taxi" type="number" step="0.1" data-k="taxi" data-num></label>
+    <label class="f">Yedek süre (dk)<input id="reserve" type="number" step="5" data-k="reserve" data-num></label>
+  </div>
+</section>
+
+<section class="panel no-print">
+  <h2>Rüzgar ve sıcaklık</h2>
+  <div class="row" style="gap:14px">
+    <div class="src" role="radiogroup" aria-label="Veri kaynağı">
+      <label><input type="radio" name="src" value="windy" id="srcWindy">Windy API</label>
+      <label><input type="radio" name="src" value="openmeteo" id="srcOM">Open-Meteo (anahtarsız)</label>
+    </div>
+    <button id="btnFetch" type="button">Rüzgar &amp; sıcaklığı getir</button>
+  </div>
+  <div class="fields" id="omBox" style="margin-top:10px">
+    <label class="f" style="grid-column:span 2">Kullanılacak model<select id="omModel" data-k="omModel">
+      <option value="ecmwf">ECMWF IFS (Avrupa Orta Vadeli Tahmin Merkezi, önerilen)</option>
+      <option value="icon">ICON-EU (Alman Meteoroloji Servisi DWD, 7 km)</option>
+      <option value="gfs">GFS (ABD NOAA)</option></select></label>
+  </div>
+  <div class="fields" id="windyBox" style="margin-top:10px">
+    <label class="f" style="grid-column:span 2">Windy Point Forecast API anahtarı<input id="windyKey" data-k="windyKey" placeholder="api.windy.com/keys" autocomplete="off"></label>
+    <label class="f">Windy modeli<select id="windyModel" data-k="windyModel"><option value="gfs">GFS</option><option value="iconEu">ICON-EU</option><option value="arome">AROME</option><option value="iconGlobal">ICON global</option></select></label>
+  </div>
+  <p class="status" id="wxStatus" aria-live="polite"></p>
+  <p class="note"><b>Kaynak:</b> Open-Meteo, ulusal meteoroloji servislerinin ham model çıktılarını (ECMWF, DWD ICON-EU, NOAA GFS) anahtarsız sunar; Windy de aynı modelleri gösterir. Varsayılan model, orta vadede en isabetli kabul edilen ECMWF IFS'tir. Üç model aynı anda çekilir ve her bacağın altında diğer modellerin rüzgarı gösterilir: modeller birbirine yakınsa tahmin tutarlıdır, çok farklıysa (ör. 10 kt'tan fazla) tahmin belirsizdir ve uçuş günü MGM havacılık tahmini (TAF, rüzgar/sıcaklık haritaları) ile kontrol edilmelidir.</p>
+  <p class="note">Her bacak için rüzgar ve sıcaklık, iki uç noktasında o bacağın irtifasına ve o bacağa girilecek saate göre (basınç seviyeleri 1000–850 hPa arasında yükseklikten enterpolasyon) hesaplanıp ortalaması alınır. Rüzgar yönleri <b>true</b> (coğrafi kuzey). Tablodaki rüzgar/OAT hücrelerini elle değiştirebilirsiniz; elle girilen bacak <b>elle</b> etiketi alır, etikete tıklayınca otomatik değere döner. Windy'nin ücretsiz "trial" anahtarı kasıtlı olarak karıştırılmış veri döndürür, gerçek planlama için Professional anahtar gerekir. Windy geçmiş tarih vermez; geçmiş tarihler için Open-Meteo kullanın.</p>
+</section>
+
+<section class="panel">
+  <h2>Navlog</h2>
+  <div class="sheet">
+    <table class="nav" id="nav">
+      <thead><tr>
+        <th>From / To</th><th>Plan alt<br>(ft)</th><th id="thSpd">IAS / TAS<br>(kt)</th><th>Course<br>(T)</th><th>V</th><th>Course<br>(M)</th>
+        <th>Wind (T)<br>yön / kt</th><th>OAT<br>°C</th><th>WCA</th><th>HDG<br>(M)</th><th>GS</th><th>Dist<br>(nm)</th><th>Time</th><th>Fuel<br>(gal)</th><th>ETA</th><th>ATA</th>
+      </tr></thead>
+      <tbody id="navBody"></tbody>
+      <tfoot><tr><td class="ft">Toplam</td><td colspan="10"></td><td id="totDist"></td><td id="totTime"></td><td id="totFuel"></td><td id="totEta"></td><td></td></tr></tfoot>
+    </table>
+  </div>
+  <div class="totals" style="margin-top:14px">
+    <div class="tot"><div class="k">Toplam mesafe</div><div class="v" id="kDist">–</div></div>
+    <div class="tot"><div class="k">Uçuş süresi</div><div class="v" id="kTime">–</div></div>
+    <div class="tot"><div class="k">Toplam gerekli yakıt</div><div class="v" id="kReq">–</div></div>
+    <div class="tot" id="kRemBox"><div class="k">Tahmini kalan yakıt</div><div class="v" id="kRem">–</div></div>
+    <div class="tot"><div class="k">ETA LTBU (yerel)</div><div class="v" id="kEta">–</div></div>
+  </div>
+</section>
+
+<section class="two">
+  <div class="panel">
+    <h2>Departure</h2>
+    <table class="box" id="depBox"></table>
+  </div>
+  <div class="panel">
+    <h2>Arrival</h2>
+    <table class="box" id="arrBox"></table>
+  </div>
+</section>
+<section class="panel"><label class="f">RMKs<input id="rmk" data-k="rmk"></label></section>
+
+<section class="two">
+  <div class="panel">
+    <h2>IAS ↔ TAS hesaplayıcı</h2>
+    <div class="conv">
+      <label class="f">İrtifa (ft)<input id="cAlt" type="number" value="2500"></label>
+      <label class="f">QNH (hPa)<input id="cQnh" type="number" value="1013"></label>
+      <label class="f">OAT (°C)<input id="cOat" type="number" value="10"></label>
+      <label class="f">IAS (kt)<input id="cIas" type="number" value="100"></label>
+      <label class="f">TAS (kt)<input id="cTas" type="number" value=""></label>
+    </div>
+    <p class="note" id="cOut" style="margin-top:10px"></p>
+    <p class="note">Basınç irtifası = irtifa + (1013,25 − QNH) düzeltmesi; yoğunluk ISA standart atmosferinden ve OAT'den bulunur, TAS = IAS / √(ρ/ρ₀). Bu hızlarda sıkıştırılabilirlik etkisi ihmal edilir, IAS ≈ CAS kabul edilir.</p>
+  </div>
+  <div class="panel">
+    <h2>Rota</h2>
+    <svg class="map" id="map" viewBox="0 0 520 420" role="img" aria-label="Rota krokisi"></svg>
+  </div>
+</section>
+
+<details class="panel no-print" id="coordsPanel">
+  <summary>Noktalar, pist ve kalkış profili</summary>
+  <div class="tbl" style="margin-top:12px">
+    <table class="co"><thead><tr><th>Nokta</th><th>Enlem (°K)</th><th>Boylam (°D)</th><th>Harita</th></tr></thead><tbody id="coBody"></tbody></table>
+  </div>
+  <div class="fields" style="margin-top:14px">
+    <label class="f">RWY 04 eşiği enlem<input id="thrLat" type="number" step="0.0001" data-k="thrLat" data-num></label>
+    <label class="f">RWY 04 eşiği boylam<input id="thrLon" type="number" step="0.0001" data-k="thrLon" data-num></label>
+    <label class="f">RWY 22 eşiği enlem<input id="thr2Lat" type="number" step="0.0001" data-k="thr2Lat" data-num></label>
+    <label class="f">RWY 22 eşiği boylam<input id="thr2Lon" type="number" step="0.0001" data-k="thr2Lon" data-num></label>
+    <label class="f">Meydan rakımı (ft)<input id="elev" type="number" step="1" data-k="elev" data-num></label>
+    <label class="f">Kalkış koşusu (nm)<input id="roll" type="number" step="0.05" data-k="roll" data-num></label>
+    <label class="f">Sola dönüş irtifası (ft)<input id="turnAlt" type="number" step="100" data-k="turnAlt" data-num></label>
+    <label class="f">Dönüş yatışı (°)<input id="bank" type="number" step="1" data-k="bank" data-num></label>
+  </div>
+  <p class="note" style="margin-top:10px"><b>Kalkış profili:</b> RWY 04 eşiğinden kalkış koşusu, ardından pist yönünde tırmanış IAS ve tırmanış oranıyla dönüş irtifasına kadar düz tırmanış. Orada sola dönülür (dönüş yarıçapı TAS ve yatış açısından), dönüşten çıkışta Velimeşe'ye düz uçulur; tırmanış ilk bacağın plan irtifasına kadar sürer. Mesafe bu yol boyunca ölçülür, direkt değildir. Velimeşe'den Pınarca'ya dönüşte bir sonraki plan irtifasına tırmanış, Pınarhisar'dan Turgutbey'e dönüşte alçalma başlar; ilgili satırda TOC/BOD mesafesi gösterilir.</p>
+  <p class="note"><b>Koordinat kaynakları:</b> Velimeşe, Vize, Pınarhisar, Saray: Wikipedia; Pınarca, Turgutbey: GeoNames; Pınarbaşı: köyün güneyindeki E80 (D-100) kavşağı, Google Maps üzerinden işaretlenen nokta; LTBU pist eşikleri: SkyVector. Velimeşe yalnızca dakika hassasiyetinde (41°15′K 27°53′D) bulundu; Google Maps'ten kontrol edip değiştirebilirsiniz. Değişiklikler tarayıcıda saklanır.</p>
+</details>
+
+<p class="note no-print">Bu araç planlama yardımcısıdır; resmi NOTAM, METAR/TAF ve AIP bilgileriyle kontrol edilmelidir.</p>
+</div>
+
+<script>
+"use strict";
+/* ---------- defaults ---------- */
+const DEF_WPS=[
+  {id:"LTBU",name:"LTBU",lat:41.1383,lon:27.9191},
+  {id:"VLM",name:"Velimeşe",lat:41.2500,lon:27.8830},
+  {id:"PNC",name:"Pınarca",lat:41.3403,lon:28.0218},
+  {id:"SRY",name:"Saray",lat:41.4411,lon:27.9216},
+  {id:"VZE",name:"Vize",lat:41.5736,lon:27.7653},
+  {id:"PNH",name:"Pınarhisar",lat:41.6281,lon:27.5122},
+  {id:"TRG",name:"Turgutbey",lat:41.4592,lon:27.3880},
+  {id:"PNB",name:"Pınarbaşı",lat:41.3648,lon:27.6083}
+];
+const ROUTE=[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,1],[1,0]];
+const DEF_ALTS=[2000,2500,2500,2500,2500,1500,1500,1500,1500];
+function todayStr(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function defaults(){return{
+  pilot:"",reg:"TC-",date:todayStr(),etd:"09:00",spdCruise:100,spdMode:"IAS",iasClimb:74,roc:700,rod:500,qnh:1013,qnhAuto:true,vari:5,
+  fuel:50,gph:9,taxi:1,reserve:30,src:"openmeteo",omModel:"ecmwf",windyKey:"",windyModel:"gfs",
+  thrLat:41.1295,thrLon:27.9055,thr2Lat:41.1472,thr2Lon:27.9325,elev:570,roll:0.25,turnAlt:1500,bank:15,
+  wps:DEF_WPS.map(w=>({...w})),
+  legs:ROUTE.map((_,i)=>({alt:DEF_ALTS[i],spd:"",wd:"",ws:"",oat:"",manual:false,ata:""})),
+  dep:{icao:"LTBU / 570 ft",qnh:"",xpdr:"",gnd:"121.900",twr:"120.375",app:"119.925",vor:"114.80",ils:"110.50",wind:""},
+  arr:{icao:"LTBU / 570 ft",qnh:"",xpdr:"",gnd:"121.900",twr:"120.375",app:"119.925",vor:"114.80",ils:"110.50",wind:""},
+  rmk:""
+}}
+const LS="vfrNavlogLTBU.v2";
+let S=defaults();
+try{const raw=localStorage.getItem(LS);if(raw){const o=JSON.parse(raw);S={...S,...o,dep:{...S.dep,...(o.dep||{})},arr:{...S.arr,...(o.arr||{})}};
+  if(!Array.isArray(S.wps)||S.wps.length!==DEF_WPS.length)S.wps=DEF_WPS.map(w=>({...w}));
+  if(!Array.isArray(S.legs)||S.legs.length!==ROUTE.length)S.legs=defaults().legs;}}catch(e){}
+let WXM=null; // Open-Meteo: {ecmwf:WX, icon:WX, gfs:WX}
+let WX=null; // {source, model, perWp:[{elev, hours:[{t, lv:[{h,u,v,T}]}]}], qnh:[{t,p}]}
+function save(){try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}}
+
+/* ---------- math ---------- */
+const D2R=Math.PI/180,R2D=180/Math.PI;
+const n360=a=>((a%360)+360)%360;
+const n180=a=>{a=n360(a);return a>180?a-360:a};
+function gc(a,b){ // distance nm, initial true bearing
+  const p1=a.lat*D2R,p2=b.lat*D2R,dl=(b.lon-a.lon)*D2R;
+  const d=2*Math.asin(Math.sqrt(Math.sin((p2-p1)/2)**2+Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2))*3440.065;
+  const y=Math.sin(dl)*Math.cos(p2),x=Math.cos(p1)*Math.sin(p2)-Math.sin(p1)*Math.cos(p2)*Math.cos(dl);
+  return{d,brg:n360(Math.atan2(y,x)*R2D)};
+}
+// local flat frame (nm) around LTBU, fine for a ~30 nm area
+function enu(o,p){return{x:(p.lon-o.lon)*60*Math.cos(o.lat*D2R),y:(p.lat-o.lat)*60}}
+function fromEnu(o,q){return{lat:o.lat+q.y/60,lon:o.lon+q.x/(60*Math.cos(o.lat*D2R))}}
+const brgXY=(a,b)=>n360(Math.atan2(b.x-a.x,b.y-a.y)*R2D);
+const distXY=(a,b)=>Math.hypot(b.x-a.x,b.y-a.y);
+// atmosphere
+function pressAlt(alt,qnh){return alt+145366.45*(1-Math.pow(qnh/1013.25,0.190284))}
+function sigma(alt,qnh,oat){const pa=pressAlt(alt,qnh);const d=Math.pow(1-6.87559e-6*pa,5.25588);return d*288.15/(oat+273.15)}
+function densAlt(s){return 145442.16*(1-Math.pow(s,0.234969))}
+const isaT=(alt,qnh)=>15-1.98*pressAlt(alt,qnh)/1000;
+const tasFromIas=(ias,alt,qnh,oat)=>ias/Math.sqrt(sigma(alt,qnh,oat));
+const iasFromTas=(tas,alt,qnh,oat)=>tas*Math.sqrt(sigma(alt,qnh,oat));
+// wind triangle; wd = direction wind blows FROM (true)
+function triangle(tc,tas,wd,ws){
+  if(!(ws>0))return{wca:0,th:tc,gs:tas};
+  const a=(wd-tc)*D2R;const s=ws*Math.sin(a)/tas;
+  if(Math.abs(s)>=1)return{wca:NaN,th:NaN,gs:NaN};
+  const wca=Math.asin(s);return{wca:wca*R2D,th:n360(tc+wca*R2D),gs:tas*Math.cos(wca)-ws*Math.cos(a)};
+}
+const uv2dir=(u,v)=>n360(Math.atan2(-u,-v)*R2D);
+function dir2uv(d,s){return{u:-s*Math.sin(d*D2R),v:-s*Math.cos(d*D2R)}}
+
+/* ---------- weather ---------- */
+const LEVELS=[1000,975,950,925,900,850];
+const ISA_H={1000:111,975:323,950:540,925:762,900:988,850:1457};
+function profileAt(hr,hM){
+  const lv=hr.lv.filter(l=>isFinite(l.h)&&isFinite(l.u)).sort((a,b)=>a.h-b.h);
+  if(!lv.length)return null;
+  if(hM<=lv[0].h)return lv[0];
+  for(let i=1;i<lv.length;i++)if(hM<=lv[i].h){const a=lv[i-1],b=lv[i],f=(hM-a.h)/(b.h-a.h);
+    return{u:a.u+f*(b.u-a.u),v:a.v+f*(b.v-a.v),T:a.T+f*(b.T-a.T)}}
+  return lv[lv.length-1];
+}
+function wxAt(src,wpi,tmin,altFt){
+  if(!src)return null;const W=src.perWp[wpi];if(!W||!W.hours.length)return null;
+  const hs=W.hours;const hM=altFt*0.3048;let i=hs.findIndex(h=>h.t>=tmin);
+  if(i===-1)i=hs.length-1;
+  if(i===0||hs[i].t===tmin)return profileAt(hs[i],hM);
+  const a=profileAt(hs[i-1],hM),b=profileAt(hs[i],hM);if(!a||!b)return a||b;
+  const f=(tmin-hs[i-1].t)/(hs[i].t-hs[i-1].t);
+  return{u:a.u+f*(b.u-a.u),v:a.v+f*(b.v-a.v),T:a.T+f*(b.T-a.T)};
+}
+function legWx(fi,ti,tmin,altFt,src=WX){
+  const a=wxAt(src,fi,tmin,altFt),b=wxAt(src,ti,tmin,altFt);if(!a||!b)return null;
+  const u=(a.u+b.u)/2,v=(a.v+b.v)/2;return{wd:Math.round(uv2dir(u,v)),ws:Math.round(Math.hypot(u,v)),oat:Math.round((a.T+b.T)/2)};
+}
+function qnhAt(tmin){if(!WX||!WX.qnh||!WX.qnh.length)return null;let best=WX.qnh[0];for(const q of WX.qnh)if(Math.abs(q.t-tmin)<Math.abs(best.t-tmin))best=q;return best.p}
+function dayDiff(a,b){return Math.round((Date.UTC(...b.split("-").map((x,i)=>i===1?x-1:+x))-Date.UTC(...a.split("-").map((x,i)=>i===1?x-1:+x)))/864e5)}
+function addDays(d,n){const t=new Date(Date.UTC(...d.split("-").map((x,i)=>i===1?x-1:+x))+n*864e5);return t.toISOString().slice(0,10)}
+
+const OM_MODELS={ecmwf:["ecmwf_ifs025","ECMWF IFS",[1000,925,850]],icon:["icon_eu","ICON-EU",[1000,975,950,925,900,850]],gfs:["gfs_seamless","GFS",[1000,975,950,925,900,850]]};
+const OM_SHORT={ecmwf:"EC",icon:"ICON",gfs:"GFS"};
+let OM_ERRORS=[];
+async function fetchOneModel(key,host){
+  const [mid,label,levels]=OM_MODELS[key];
+  const lats=S.wps.map(w=>w.lat.toFixed(4)).join(","),lons=S.wps.map(w=>w.lon.toFixed(4)).join(",");
+  const vars=[];for(const L of levels)vars.push(`temperature_${L}hPa`,`wind_speed_${L}hPa`,`wind_direction_${L}hPa`,`geopotential_height_${L}hPa`);
+  vars.push("pressure_msl","temperature_2m","wind_speed_10m","wind_direction_10m");
+  const url=`${host}?latitude=${lats}&longitude=${lons}&hourly=${vars.join(",")}&models=${mid}&wind_speed_unit=kn&timezone=Europe%2FIstanbul&start_date=${S.date}&end_date=${addDays(S.date,1)}`;
+  const r=await fetch(url);let j;try{j=await r.json()}catch(e){throw new Error(label+": sunucu yanıtı okunamadı ("+r.status+")")}
+  if(!r.ok||j.error)throw new Error(label+": "+(j.reason||r.status));
+  const arr=Array.isArray(j)?j:[j];
+  // key names: plain when one model is requested; some responses still suffix the model id
+  const g=(H,v,k)=>{const a=H[v]||H[v+"_"+mid];return a?a[k]:null};
+  const perWp=arr.map(loc=>{const H=loc.hourly;const hours=[];
+    for(let k=0;k<H.time.length;k++){const [d,hm]=H.time[k].split("T");const t=dayDiff(S.date,d)*1440+(+hm.slice(0,2))*60+(+hm.slice(3,5));
+      const lv=[];
+      const s10=g(H,"wind_speed_10m",k),d10=g(H,"wind_direction_10m",k);
+      if(s10!=null&&d10!=null){const w=dir2uv(d10,s10);lv.push({h:(loc.elevation||0)+10,u:w.u,v:w.v,T:g(H,"temperature_2m",k)??15})}
+      for(const L of levels){const sp=g(H,`wind_speed_${L}hPa`,k),dd2=g(H,`wind_direction_${L}hPa`,k),T=g(H,`temperature_${L}hPa`,k),gh=g(H,`geopotential_height_${L}hPa`,k);
+        if(sp==null||dd2==null||T==null)continue;const h=gh??ISA_H[L];if(h<=(loc.elevation||0)+10)continue;
+        const w=dir2uv(dd2,sp);lv.push({h,u:w.u,v:w.v,T})}
+      if(lv.length>1)hours.push({t,lv})}
+    return{elev:loc.elevation,hours}});
+  if(!perWp[0].hours.length)throw new Error(label+": bu tarih için veri yok");
+  const H0=arr[0].hourly;const qnh=H0.time.map((tt,k)=>{const [d,hm]=tt.split("T");return{t:dayDiff(S.date,d)*1440+(+hm.slice(0,2))*60,p:g(H0,"pressure_msl",k)}}).filter(q=>q.p!=null);
+  return{source:"Open-Meteo",model:label,perWp,qnh};
+}
+async function fetchOpenMeteo(){
+  const today=todayStr();const dd=dayDiff(today,S.date);
+  if(dd>15)throw new Error("Open-Meteo en fazla 16 gün sonrası için tahmin veriyor. Tarih çok ileride.");
+  const host=dd<-85?"https://historical-forecast-api.open-meteo.com/v1/forecast":"https://api.open-meteo.com/v1/forecast";
+  const keys=Object.keys(OM_MODELS);
+  const rs=await Promise.allSettled(keys.map(k=>fetchOneModel(k,host)));
+  const out={};OM_ERRORS=[];
+  rs.forEach((r,i)=>{if(r.status==="fulfilled")out[keys[i]]=r.value;else OM_ERRORS.push(r.reason&&r.reason.message||String(r.reason))});
+  if(!Object.keys(out).length){
+    const net=rs.every(r=>r.reason instanceof TypeError);
+    if(net){const e=new TypeError("Open-Meteo sunucusuna bağlanılamadı");throw e}
+    throw new Error("Open-Meteo: "+OM_ERRORS.join(" | "));
+  }
+  return out;
+}
+async function windyPoint(w,params,levels){
+  const r=await fetch("https://api.windy.com/api/point-forecast/v2",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({lat:+w.lat.toFixed(4),lon:+w.lon.toFixed(4),model:S.windyModel,parameters:params,levels,key:S.windyKey.trim()})});
+  const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error("Windy: "+(j.message||j.error||r.status));return j;
+}
+async function fetchWindy(){
+  if(!S.windyKey.trim())throw new Error("Windy API anahtarı girilmedi.");
+  const levels=["surface","1000h","950h","925h","900h","850h"];
+  const base=Date.UTC(...S.date.split("-").map((x,i)=>i===1?x-1:+x));
+  const perWp=[];let qnh=[];
+  for(let i=0;i<S.wps.length;i++){
+    let j;try{j=await windyPoint(S.wps[i],["wind","temp","gh","pressure"],levels)}catch(e){j=await windyPoint(S.wps[i],["wind","temp"],levels)}
+    const hours=j.ts.map((ts,k)=>{const lv=[];
+      for(const L of levels){const u=j[`wind_u-${L}`],v=j[`wind_v-${L}`],T=j[`temp-${L}`];if(!u||!v||!T)continue;
+        let h;if(L==="surface")h=(i===0?S.elev*0.3048:150)+10;else{const g=j[`gh-${L}`];h=g&&g[k]!=null?g[k]:ISA_H[parseInt(L)]}
+        lv.push({h,u:u[k]*1.943844,v:v[k]*1.943844,T:T[k]-273.15})}
+      return{t:(ts-base)/6e4+180,lv}});
+    perWp.push({elev:null,hours});
+    if(i===0&&j["pressure-surface"]){const hm=S.elev*0.3048;qnh=j.ts.map((ts,k)=>({t:(ts-base)/6e4+180,p:j["pressure-surface"][k]/100/Math.pow(1-2.25577e-5*hm,5.25588)}))}
+  }
+  const first=perWp[0].hours;const ok=first.some(h=>h.t>=0&&h.t<=2880);
+  if(!ok)throw new Error("Windy bu tarih için tahmin döndürmedi (Windy yalnızca gelecek ~10 gün için tahmin verir).");
+  return{source:"Windy",model:S.windyModel,perWp,qnh};
+}
+
+/* ---------- departure path ---------- */
+function departure(tasClimb,ctx){
+  const o=S.wps[0];const thr={lat:S.thrLat,lon:S.thrLon},thr2={lat:S.thr2Lat,lon:S.thr2Lon};
+  const P0=enu(o,thr),T=enu(o,S.wps[1]);const rh=brgXY(P0,enu(o,thr2));
+  const gA=triangle(rh,tasClimb,ctx.wd,ctx.ws);const gsA=isFinite(gA.gs)?gA.gs:tasClimb;
+  const climbA=Math.max(0,S.turnAlt-S.elev);const tA=climbA/S.roc; // min
+  const dA=S.roll+gsA*tA/60;
+  const tRoll=S.roll/30*60;
+  let p={x:P0.x+dA*Math.sin(rh*D2R),y:P0.y+dA*Math.cos(rh*D2R)};
+  const P1={...p};
+  // left turn, radius from TAS & bank: r = V^2/(g tanφ)
+  const v=tasClimb*0.514444;const r=(v*v/(9.80665*Math.tan(Math.max(5,S.bank)*D2R)))/1852;
+  let hdg=rh,arc=0;const path=[P0,P1];const step=1;
+  for(let k=0;k<720;k++){const rel=n180(brgXY(p,T)-hdg);if(rel>=0||distXY(p,T)<0.05)break;
+    const mid=hdg-step/2;const ds=r*step*D2R;p={x:p.x+ds*Math.sin(mid*D2R),y:p.y+ds*Math.cos(mid*D2R)};hdg=n360(hdg-step);arc+=ds;path.push({...p})}
+  const tcB=brgXY(p,T),sB=distXY(p,T);path.push(T);
+  const tArc=arc/tasClimb*60;
+  return{rh,dA,tA:tA+tRoll,gsA,thA:gA.th,wcaA:gA.wca,P1,exit:p,r,arc,tArc,tcB,sB,path,turnDeg:n360(rh-hdg)};
+}
+
+/* ---------- compute ---------- */
+const fmtT=m=>{if(!isFinite(m))return"–";const s=Math.round(m*60);return Math.floor(s/60)+":"+String(s%60).padStart(2,"0")};
+const fmtClock=m=>{if(!isFinite(m))return"–";m=((Math.round(m)%1440)+1440)%1440;return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0")};
+const f0=x=>isFinite(x)?String(Math.round(x)).padStart(3,"0"):"–";
+const f1=x=>isFinite(x)?x.toFixed(1):"–";
+const num=v=>v===""||v==null?NaN:+v;
+const etdMin=()=>{const [h,m]=(S.etd||"00:00").split(":");return(+h)*60+(+m)};
+
+function speeds(spdInput,alt,oat){
+  const q=S.qnh;if(S.spdMode==="TAS"){const tas=spdInput;return{tas,ias:iasFromTas(tas,alt,q,oat)}}
+  const ias=spdInput;return{ias,tas:tasFromIas(ias,alt,q,oat)};
+}
+let LAST=null;
+function compute(){
+  const res=[];let clock=etdMin();
+  if(WX&&S.qnhAuto){const q=qnhAt(clock);if(q){S.qnh=Math.round(q);document.getElementById("qnh").value=S.qnh}}
+  let prevAlt=S.elev;
+  ROUTE.forEach(([fi,ti],i)=>{
+    const L=S.legs[i];const from=S.wps[fi],to=S.wps[ti];const alt=+L.alt||1500;
+    const meanAlt=i===0?(S.elev+alt)/2:(prevAlt+alt)/2;
+    // auto weather
+    if(WX&&!L.manual){const w=legWx(fi,ti,clock+5,meanAlt);if(w){L.wd=w.wd;L.ws=w.ws;L.oat=w.oat}}
+    let cmp="",spread=0;
+    if(WXM){const ws2=[];for(const k of Object.keys(WXM)){const w=legWx(fi,ti,clock+5,meanAlt,WXM[k]);if(!w)continue;ws2.push(w);
+      if(WXM[k]!==WX)cmp+=(cmp?" · ":"")+`${OM_SHORT[k]} ${f0(w.wd)}/${w.ws}`}
+      for(const a of ws2)for(const b of ws2){const A=dir2uv(a.wd,a.ws),B=dir2uv(b.wd,b.ws);spread=Math.max(spread,Math.hypot(A.u-B.u,A.v-B.v))}}
+    const wd=num(L.wd),ws=num(L.ws);const oat=isFinite(num(L.oat))?num(L.oat):isaT(alt,S.qnh);
+    const spdIn=isFinite(num(L.spd))?num(L.spd):S.spdCruise;
+    const sp=speeds(spdIn,alt,oat);
+    const climbTas=tasFromIas(S.iasClimb,meanAlt,S.qnh,oat);
+    const ctx={wd:isFinite(wd)?wd:0,ws:isFinite(ws)?ws:0};
+    const row={i,fi,ti,alt,oat,sp,wd,ws,start:clock,subs:[],note:"",cmp,spread};
+    if(i===0){
+      const D=departure(climbTas,ctx);row.dep=D;
+      // seg A: runway heading climb
+      row.subs.push({label:`RWY 04 → ${S.turnAlt} ft`,tc:D.rh,wca:D.wcaA,th:D.thA,gs:D.gsA,dist:D.dA,time:D.tA,spdTxt:`${Math.round(S.iasClimb)} / ${Math.round(climbTas)}`});
+      // seg B: left turn + straight, climbing turnAlt -> alt
+      const gB=triangle(D.tcB,climbTas,ctx.wd,ctx.ws);const gsBc=isFinite(gB.gs)?gB.gs:climbTas;
+      const gC=triangle(D.tcB,sp.tas,ctx.wd,ctx.ws);
+      let need=Math.max(0,alt-S.turnAlt)-S.roc*D.tArc;let tB=D.tArc,dClimb=0;
+      if(need>0){const t=need/S.roc;dClimb=Math.min(D.sB,gsBc*t/60);tB+=dClimb/gsBc*60+(D.sB-dClimb)/gC.gs*60;}
+      else tB+=D.sB/gC.gs*60;
+      row.subs.push({label:`Sola ${Math.round(D.turnDeg)}° dönüş → ${to.name}`,tc:D.tcB,wca:gC.wca,th:gC.th,gs:gC.gs,dist:D.arc+D.sB,time:tB,
+        spdTxt:`${Math.round(sp.ias)} / ${Math.round(sp.tas)}`,hint:`dönüş ${f1(D.arc)} nm + düz ${f1(D.sB)} nm`});
+      row.note=need>0?`${alt} ft'e dönüş çıkışından ${f1(dClimb)} nm sonra`:`${alt} ft'e dönüşte`;
+      row.dist=D.dA+D.arc+D.sB;row.time=D.tA+tB;row.tc=D.tcB;row.th=gC.th;row.gs=gC.gs;row.wca=gC.wca;
+    }else{
+      const g=gc(from,to);row.tc=g.brg;row.dist=g.d;
+      const t=triangle(g.brg,sp.tas,ctx.wd,ctx.ws);row.wca=t.wca;row.th=t.th;row.gs=t.gs;
+      if(alt>prevAlt+1){const tc=(alt-prevAlt)/S.roc;const gcl=triangle(g.brg,climbTas,ctx.wd,ctx.ws).gs;
+        const dcl=Math.min(g.d,gcl*tc/60);row.time=dcl/gcl*60+(g.d-dcl)/t.gs*60;row.note=`TOC ${alt} ft: ${f1(dcl)} nm`;}
+      else if(alt<prevAlt-1){const dd=t.gs*((prevAlt-alt)/S.rod)/60;row.time=g.d/t.gs*60;row.note=`BOD ${alt} ft: ${f1(Math.min(dd,g.d))} nm`;}
+      else row.time=g.d/t.gs*60;
+    }
+    row.fuel=row.time/60*S.gph;clock+=row.time;row.eta=clock;prevAlt=alt;res.push(row);
+  });
+  LAST=res;render(res);
+}
+
+/* ---------- render ---------- */
+const $=id=>document.getElementById(id);
+function buildTable(){
+  const tb=$("navBody");tb.innerHTML="";
+  ROUTE.forEach(([fi,ti],i)=>{
+    const tr=document.createElement("tr");tr.className="leg";tr.id="leg"+i;
+    tr.innerHTML=`<td class="ft"><span id="fn${i}"></span><span id="tn${i}"></span></td>
+      <td><input type="number" step="100" id="alt${i}" aria-label="Plan irtifa"></td>
+      <td><input type="number" step="1" id="spd${i}" aria-label="Hız" placeholder=""><span class="hint" id="spdH${i}"></span></td>
+      <td class="calc" id="tc${i}"></td><td id="v${i}"></td><td class="calc" id="mc${i}"></td>
+      <td><div class="wv"><input class="w" type="number" id="wd${i}" aria-label="Rüzgar yönü">/<input class="w" type="number" id="ws${i}" aria-label="Rüzgar hızı"></div><span class="cmp" id="cmp${i}"></span><span class="tag" id="tag${i}" hidden title="Otomatik değere dön">elle ↺</span></td>
+      <td><input class="w" type="number" id="oat${i}" aria-label="OAT"></td>
+      <td class="calc" id="wca${i}"></td><td class="calc" id="hdg${i}"></td><td class="calc" id="gs${i}"></td>
+      <td class="calc" id="dist${i}"></td><td class="calc" id="time${i}"></td><td class="calc" id="fuel${i}"></td><td class="calc" id="eta${i}"></td>
+      <td><input id="ata${i}" style="width:4.2em" aria-label="ATA"></td>`;
+    tb.appendChild(tr);
+    if(i===0){for(let k=0;k<2;k++){const s=document.createElement("tr");s.className="sub";s.id=`sub0_${k}`;
+      s.innerHTML=`<td class="ft" id="sl${k}"></td><td></td><td id="ss${k}"></td><td id="stc${k}"></td><td></td><td id="smc${k}"></td><td colspan="2"></td><td id="swca${k}"></td><td id="shdg${k}"></td><td id="sgs${k}"></td><td id="sd${k}"></td><td id="st${k}"></td><td colspan="3"></td>`;
+      tb.appendChild(s)}}
+    const L=S.legs[i];
+    const bind=(id,key,manual)=>{const el=$(id+i);el.value=L[key]??"";el.addEventListener("input",()=>{L[key]=el.value;if(manual)L.manual=true;save();compute()})};
+    bind("alt","alt");bind("spd","spd");bind("wd","wd",1);bind("ws","ws",1);bind("oat","oat",1);bind("ata","ata");
+    $("tag"+i).addEventListener("click",()=>{L.manual=false;if(!WX){L.wd="";L.ws="";L.oat=""}save();compute()});
+  });
+}
+function render(res){
+  const V=S.vari;const vTxt=V===0?"0":Math.abs(V)+(V>0?"E":"W");
+  $("thSpd").innerHTML=S.spdMode==="TAS"?"TAS / IAS<br>(kt)":"IAS / TAS<br>(kt)";
+  let dist=0,time=0;
+  res.forEach(r=>{const i=r.i;
+    $("fn"+i).textContent=S.wps[r.fi].name.toLocaleUpperCase("tr");$("tn"+i).textContent=S.wps[r.ti].name.toLocaleUpperCase("tr");
+    $("spd"+i).placeholder=String(S.spdCruise);
+    $("spdH"+i).textContent=S.spdMode==="TAS"?`IAS ${Math.round(r.sp.ias)}`:`TAS ${Math.round(r.sp.tas)}`;
+    $("tc"+i).textContent=f0(r.tc);$("v"+i).textContent=vTxt;$("mc"+i).textContent=f0(n360(r.tc-V));
+    const L=S.legs[i];
+    for(const k of["wd","ws","oat"]){const el=$(k+i);if(document.activeElement!==el)el.value=L[k]??"";
+      el.placeholder=k==="oat"?String(Math.round(r.oat)):"0";}
+    $("tag"+i).hidden=!L.manual;
+    const ce=$("cmp"+i);ce.textContent=r.cmp;ce.classList.toggle("bad",r.spread>10);ce.title=r.cmp?`Modeller arası en büyük rüzgar farkı ${Math.round(r.spread)} kt`:"";
+    $("wca"+i).textContent=isFinite(r.wca)?(r.wca>=0?"+":"−")+Math.abs(Math.round(r.wca)):"–";
+    $("hdg"+i).textContent=f0(n360(r.th-V));$("gs"+i).textContent=isFinite(r.gs)?Math.round(r.gs):"–";
+    $("dist"+i).textContent=f1(r.dist);$("time"+i).innerHTML=fmtT(r.time)+(r.note?`<span class="hint">${r.note}</span>`:"");
+    $("fuel"+i).textContent=f1(r.fuel);$("eta"+i).textContent=fmtClock(r.eta);
+    if(i===0)r.subs.forEach((s,k)=>{$("sl"+k).innerHTML=s.label+(s.hint?`<span class="hint">${s.hint}</span>`:"");$("ss"+k).textContent=s.spdTxt;$("stc"+k).textContent=f0(s.tc);$("smc"+k).textContent=f0(n360(s.tc-V));
+      $("swca"+k).textContent=isFinite(s.wca)?(s.wca>=0?"+":"−")+Math.abs(Math.round(s.wca)):"–";$("shdg"+k).textContent=f0(n360(s.th-V));$("sgs"+k).textContent=Math.round(s.gs);$("sd"+k).textContent=f1(s.dist);$("st"+k).textContent=fmtT(s.time)});
+    dist+=r.dist;time+=r.time;});
+  const trip=time/60*S.gph,req=trip+S.taxi+S.reserve/60*S.gph,rem=S.fuel-trip-S.taxi;
+  $("totDist").textContent=f1(dist);$("totTime").textContent=fmtT(time);$("totFuel").textContent=f1(trip);$("totEta").textContent=fmtClock(etdMin()+time);
+  $("kDist").textContent=f1(dist)+" nm";
+  $("kTime").textContent=Math.floor(time/60)+" sa "+Math.round(time%60)+" dk";
+  $("kReq").textContent=f1(req)+" gal";$("kRem").textContent=f1(rem)+" gal";$("kEta").textContent=fmtClock(etdMin()+time);
+  $("kRemBox").classList.toggle("warn",rem-S.reserve/60*S.gph<0);
+  drawMap(res);
+}
+function drawMap(res){
+  const o=S.wps[0];const pts=S.wps.map(w=>enu(o,w));const D=res[0].dep;
+  const all=[...pts,...D.path];const xs=all.map(p=>p.x),ys=all.map(p=>p.y);
+  const W=520,H=420,pad=40;const minx=Math.min(...xs),maxx=Math.max(...xs),miny=Math.min(...ys),maxy=Math.max(...ys);
+  const sc=Math.min((W-2*pad)/(maxx-minx),(H-2*pad)/(maxy-miny));
+  const ox=(W-(maxx-minx)*sc)/2,oy=(H-(maxy-miny)*sc)/2;
+  const X=p=>ox+(p.x-minx)*sc,Y=p=>H-oy-(p.y-miny)*sc;
+  let s="";
+  const lines=ROUTE.slice(1).map(([a,b])=>`M${X(pts[a]).toFixed(1)},${Y(pts[a]).toFixed(1)}L${X(pts[b]).toFixed(1)},${Y(pts[b]).toFixed(1)}`).join("");
+  s+=`<path d="${lines}" stroke="var(--accent)" stroke-width="2" fill="none"/>`;
+  s+=`<path d="M${D.path.map(p=>X(p).toFixed(1)+","+Y(p).toFixed(1)).join("L")}" stroke="var(--hand)" stroke-width="2" stroke-dasharray="5 3" fill="none"/>`;
+  res.forEach(r=>{if(r.i===0)return;const a=pts[r.fi],b=pts[r.ti];const mx=(X(a)+X(b))/2,my=(Y(a)+Y(b))/2;
+    s+=`<text class="lbl" x="${mx.toFixed(0)}" y="${my.toFixed(0)}" text-anchor="middle" style="font-size:10px;fill:var(--muted)">${f0(r.tc)}° ${f1(r.dist)}</text>`});
+  S.wps.forEach((w,i)=>{const x=X(pts[i]),y=Y(pts[i]);s+=`<circle cx="${x}" cy="${y}" r="${i?4:6}" fill="${i?"var(--panel)":"var(--accent)"}" stroke="var(--ink)" stroke-width="1.5"/>`;
+    s+=`<text class="lbl" x="${x+8}" y="${y-7}">${w.name}</text>`});
+  s+=`<g transform="translate(${W-28},34)"><path d="M0,-18L6,4L0,0L-6,4Z" fill="var(--ink)"/><text y="16" text-anchor="middle" style="font-size:10px">N (T)</text></g>`;
+  $("map").innerHTML=s;
+}
+function buildBoxes(){
+  const rows=[["icao","ICAO / Pist rakımı"],["qnh","QNH"],["xpdr","Transponder"],["gnd","Ground Freq."],["twr","Tower Freq."],["app","Approach Freq."],["vor","VOR Freq."],["ils","ILS Freq."],["wind","Wind"]];
+  for(const side of["dep","arr"]){const t=$(side+"Box");t.innerHTML=rows.map(([k,l])=>`<tr><td>${l}</td><td><input id="${side}_${k}"></td></tr>`).join("");
+    rows.forEach(([k])=>{const el=$(`${side}_${k}`);el.value=S[side][k]||"";el.addEventListener("input",()=>{S[side][k]=el.value;save()})})}
+}
+function buildCoords(){
+  $("coBody").innerHTML=S.wps.map((w,i)=>`<tr><td>${w.name}${i===0?" (ARP)":""}</td><td><input type="number" step="0.0001" id="la${i}" value="${w.lat}"></td><td><input type="number" step="0.0001" id="lo${i}" value="${w.lon}"></td>
+    <td><a id="gm${i}" target="_blank" rel="noopener">Google Maps</a> · <a id="wy${i}" target="_blank" rel="noopener">Windy</a></td></tr>`).join("");
+  const links=()=>S.wps.forEach((w,i)=>{$("gm"+i).href=`https://www.google.com/maps?q=${w.lat},${w.lon}`;$("wy"+i).href=`https://www.windy.com/${w.lat}/${w.lon}?${w.lat},${w.lon},10`});
+  links();
+  S.wps.forEach((w,i)=>{for(const [p,k] of[["la","lat"],["lo","lon"]]){$(p+i).addEventListener("input",e=>{const v=parseFloat(e.target.value);if(isFinite(v)){w[k]=v;WX=null;WXM=null;save();links();compute()}})}});
+}
+function bindFields(){
+  document.querySelectorAll("[data-k]").forEach(el=>{const k=el.dataset.k;el.value=S[k]??"";
+    el.addEventListener("input",()=>{let v=el.value;if(el.hasAttribute("data-num")){v=parseFloat(v);if(!isFinite(v))return}
+      S[k]=v;if(k==="qnh")S.qnhAuto=false;if(k==="date"){WX=null;WXM=null}save();if(k!=="windyKey"&&k!=="pilot"&&k!=="reg"&&k!=="rmk")compute()})});
+  const src=S.src==="windy"?$("srcWindy"):$("srcOM");src.checked=true;
+  const showW=()=>{$("windyBox").hidden=S.src!=="windy";$("omBox").hidden=S.src==="windy"};showW();
+  $("omModel").addEventListener("change",()=>{if(WXM&&WXM[S.omModel]){WX=WXM[S.omModel];S.legs.forEach(L=>L.manual=false);compute();
+    $("wxStatus").className="status ok";$("wxStatus").textContent=`Open-Meteo (${WX.model}) verisi kullanılıyor.`}});
+  document.querySelectorAll('input[name=src]').forEach(r=>r.addEventListener("change",()=>{S.src=r.value;save();showW()}));
+}
+async function doFetch(){
+  const st=$("wxStatus"),b=$("btnFetch");b.disabled=true;st.className="status";st.textContent="Veri çekiliyor…";
+  try{
+    if(S.src==="windy"){WXM=null;WX=await fetchWindy()}else{WXM=await fetchOpenMeteo();WX=WXM[S.omModel]||Object.values(WXM)[0]}
+    S.legs.forEach(L=>L.manual=false);S.qnhAuto=true;save();compute();
+    st.className="status ok";st.textContent=`${WX.source} (${WX.model}) verisi yüklendi: ${S.date.split("-").reverse().join(".")} · ETD ${S.etd} yerel. QNH tahmini LTBU ${S.qnh} hPa.`+(OM_ERRORS.length?" Alınamayan modeller: "+OM_ERRORS.join("; "):"");
+  }catch(e){
+    const blocked=e instanceof TypeError;
+    if(S.src==="windy"&&!blocked){st.className="status err";st.textContent=e.message+" Open-Meteo deneniyor…";
+      try{WXM=await fetchOpenMeteo();WX=WXM[S.omModel]||Object.values(WXM)[0];S.legs.forEach(L=>L.manual=false);S.qnhAuto=true;save();compute();st.className="status ok";st.textContent=e.message+" Bunun yerine Open-Meteo ("+WX.model+") verisi yüklendi.";}
+      catch(e2){st.className="status err";st.textContent=e.message+" / "+e2.message}}
+    else{st.className="status err";st.textContent=blocked?(/claude\.ai|claudeusercontent|anthropic/.test(location.hostname)?"Bu önizleme sayfası dış sunuculara bağlanamıyor, bu yüzden hava verisi burada çekilemez. index.html dosyasını indirip bilgisayarınızda açın ya da GitHub Pages adresini kullanın. Burada rüzgar ve OAT değerlerini tabloya elle girebilirsiniz.":"Hava verisi sunucusuna bağlanılamadı (internet bağlantısını ya da reklam engelleyiciyi kontrol edin). Rüzgar ve OAT değerlerini tabloya elle girebilirsiniz."):e.message}
+  }finally{b.disabled=false}
+}
+function conv(src){
+  const a=+$("cAlt").value,q=+$("cQnh").value,t=+$("cOat").value;if(![a,q,t].every(isFinite))return;
+  const s=sigma(a,q,t);
+  if(src==="tas"){const tas=+$("cTas").value;if(isFinite(tas))$("cIas").value=Math.round(iasFromTas(tas,a,q,t))}
+  else{const ias=+$("cIas").value;if(isFinite(ias))$("cTas").value=Math.round(tasFromIas(ias,a,q,t))}
+  const pa=pressAlt(a,q),da=densAlt(s);
+  $("cOut").innerHTML=`Basınç irtifası <b class="out">${Math.round(pa)} ft</b> · Yoğunluk irtifası <b class="out">${Math.round(da)} ft</b> · ISA sıcaklığı <b class="out">${isaT(a,q).toFixed(1)} °C</b> · ρ/ρ₀ <b class="out">${s.toFixed(3)}</b>`;
+}
+function init(){
+  bindFields();buildTable();buildBoxes();buildCoords();
+  $("btnFetch").addEventListener("click",doFetch);
+  $("btnReset").addEventListener("click",()=>{const k=S.windyKey;S=defaults();S.windyKey=k;WX=null;save();location.reload()});
+  $("btnPrint").addEventListener("click",()=>window.print());
+  if(/claude|anthropic/.test(location.hostname))$("btnPrint").hidden=true;
+  ["cAlt","cQnh","cOat","cIas"].forEach(id=>$(id).addEventListener("input",()=>conv("ias")));$("cTas").addEventListener("input",()=>conv("tas"));
+  conv("ias");compute();
+}
+init();
+</script>
+</body>
+</html>
