@@ -107,7 +107,8 @@ details summary{cursor:pointer;font:600 1.05rem var(--f-display);letter-spacing:
 .pg .h.sm{font-size:1.75cqw}
 .pg .h.xs{font-size:1.45cqw}
 .pg .h.lg{font-size:2.5cqw}
-.pg .h.u{font-size:1.6cqw}
+.pg .h.u{font-size:2.6cqw}
+.pg .h.md{font-size:2.35cqw}
 .pg .h .run{display:inline-flex;align-items:flex-end;height:1em;white-space:nowrap;line-height:1;font-size:1em} /* fixed-height run: every word and number sits on the same baseline whatever its ascenders */
 .pg .h .run img{height:1em;vertical-align:baseline;position:relative;display:inline-block}
 .pg .h .run .sp{display:inline-block;width:.35em}
@@ -743,11 +744,12 @@ function hwRow(top,bot,r,i,both){ // one leg row; both = {a:selected runway, b:o
   o+=hwBox(c[6]+2,y1,c[6]+(c[7]-c[6])*0.55,y2,wdir,"sm","wd"+i);
   o+=hwBox(c[7]-(c[7]-c[6])*0.6,y2,c[7]-2,y3,wspd,"sm","ws"+i);
   const line=(R,ya,yb,tag,yc)=>{let q="";const yl=yc||yb; // yc: bottom of the full cell for the one-line values (centred vertically in the cell)
-    q+=hwBox(c[3],ya,c[4],yl,hwDeg(R.tc),"","tc"+tag);q+=hwBox(c[4],ya,c[5],yl,vTxt,"sm","v"+tag);q+=hwBox(c[5],ya,c[6],yl,hwDeg(n360(R.tc-V)),"","mc"+tag);
-    q+=hwBox(c[7],ya,c[8],yl,hwDeg(n360(R.th-V)),"","hd"+tag);
-    q+=hwBox(c[8],ya,c[9],yb,isFinite(R.gs)?Math.round(R.gs)+(both?"kt":""):"",both?"xs":"","gs"+tag);
-    q+=hwBox(c[9],ya,c[10],yb,hwNum(R.dist)+(both?"NM":""),both?"xs":"","d"+tag);
-    q+=hwBox(c[10],ya,c[11],yl,hwNum(R.time)+"'",yc?"lg":"","tm"+tag);
+    const nc=yc?"":"md"; // split first row: one step larger than the default
+    q+=hwBox(c[3],ya,c[4],yl,hwDeg(R.tc),nc,"tc"+tag);q+=hwBox(c[4],ya,c[5],yl,vTxt,"sm","v"+tag);q+=hwBox(c[5],ya,c[6],yl,hwDeg(n360(R.tc-V)),nc,"mc"+tag);
+    q+=hwBox(c[7],ya,c[8],yl,hwDeg(n360(R.th-V)),nc,"hd"+tag);
+    q+=hwBox(c[8],ya,c[9],yb,isFinite(R.gs)?Math.round(R.gs)+(both?"kt":""):"",both?"sm":"","gs"+tag);
+    q+=hwBox(c[9],ya,c[10],yb,hwNum(R.dist)+(both?"NM":""),both?"sm":"","d"+tag);
+    q+=hwBox(c[10],ya,c[11],yl,hwNum(R.time)+"'",yc?"lg":"md","tm"+tag);
     // ETA / ATA stay blank on the printed sheet; they are filled in flight
     return q};
   if(both){
