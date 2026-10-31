@@ -113,7 +113,7 @@ details summary{cursor:pointer;font:600 1.05rem var(--f-display);letter-spacing:
 <div class="wrap">
 
 <header class="top">
-  <h1>VFR Navlog<small>LTBU · Velimeşe · Pınarca · Saray · Vize · Pınarhisar · Turgutbey · Pınarbaşı · Velimeşe · LTBU</small></h1>
+  <h1>VFR Navlog<small id="routeLine"></small></h1>
   <div class="row no-print">
     <button class="ghost" id="btnPrint" type="button">Yazdır / PDF</button>
     <button class="ghost" id="btnReset" type="button">Varsayılana dön</button>
@@ -123,6 +123,7 @@ details summary{cursor:pointer;font:600 1.05rem var(--f-display);letter-spacing:
 <section class="panel">
   <h2>Uçuş bilgileri</h2>
   <div class="fields">
+    <label class="f">Seyrüsefer<select id="routeId"><option value="kuzey">Kuzey-1</option><option value="guney">Güney-1</option></select></label>
     <label class="f">Pilot<input id="pilot" data-k="pilot"></label>
     <label class="f">Tescil<input id="reg" data-k="reg"></label>
     <label class="f">Tarih (gün/ay/yıl)<input id="date" type="date" data-k="date"></label>
@@ -235,11 +236,12 @@ details summary{cursor:pointer;font:600 1.05rem var(--f-display);letter-spacing:
     <label class="f">RWY 22 eşiği boylam<input id="thr2Lon" type="number" step="0.0001" data-k="thr2Lon" data-num></label>
     <label class="f">Meydan rakımı (ft)<input id="elev" type="number" step="1" data-k="elev" data-num></label>
     <label class="f">Kalkış koşusu (nm)<input id="roll" type="number" step="0.05" data-k="roll" data-num></label>
-    <label class="f">Dönüş irtifası (ft)<input id="turnAlt" type="number" step="100" data-k="turnAlt" data-num></label>
+    <label class="f">İlk düz mesafe (nm)<input id="turnDist" type="number" step="0.1" data-k="turnDist" data-num></label>
+    <label class="f">Güney-1 ara düz mesafe (nm)<input id="dogleg" type="number" step="0.1" data-k="dogleg" data-num></label>
     <label class="f">Dönüş yatışı (°)<input id="bank" type="number" step="1" data-k="bank" data-num></label>
   </div>
-  <p class="note" style="margin-top:10px"><b>Kalkış profili:</b> Seçilen pistin eşiğinden kalkış koşusu, ardından pist yönünde tırmanış IAS ve tırmanış oranıyla dönüş irtifasına kadar düz tırmanış. Orada Velimeşe'ye en kısa yönde dönülür (RWY 04'te sola, RWY 22'de sağa; dönüş yarıçapı TAS ve yatış açısından), dönüşten çıkışta Velimeşe'ye düz uçulur; tırmanış ilk bacağın plan irtifasına kadar sürer. Mesafe bu yol boyunca ölçülür, direkt değildir. Velimeşe'den Pınarca'ya dönüşte bir sonraki plan irtifasına tırmanış, Pınarhisar'dan Turgutbey'e dönüşte alçalma başlar; ilgili satırda TOC/BOD mesafesi gösterilir.</p>
-  <p class="note"><b>Koordinat kaynakları:</b> Pınarca, Saray, Vize, Pınarhisar, Turgutbey ve Pınarbaşı (köyün güneyindeki E80 kavşağı): Google Maps üzerinden işaretlenen noktalar; Velimeşe: Wikipedia; LTBU pist eşikleri: SkyVector. Velimeşe yalnızca dakika hassasiyetinde (41°15′K 27°53′D) bulundu; Google Maps'ten kontrol edip değiştirebilirsiniz. Değişiklikler tarayıcıda saklanır.</p>
+  <p class="note" style="margin-top:10px"><b>Kalkış profili:</b> Seçilen pistin eşiğinden pist yönünde "ilk düz mesafe" kadar (varsayılan 1,5 nm) tırmanarak uçulur; tırmanış IAS ve tırmanış oranıyla o noktada ulaşılan irtifa hesaplanır (yaklaşık 1500 ft). <b>Kuzey-1:</b> oradan ilk noktaya en kısa yönde dönülür (RWY 04'te sola, RWY 22'de sağa). <b>Güney-1:</b> RWY 04'te tam sola 90° dönülüp "ara düz mesafe" kadar (0,5 nm) uçulur, sonra Maksutlu'ya direkt dönülür; RWY 22'de ilk düz mesafeden sonra doğrudan Maksutlu'ya dönülür. Dönüş yarıçapı TAS ve yatış açısından; mesafe bu yol boyunca ölçülür, direkt değildir. Tırmanış ilk bacağın plan irtifasına ulaşana kadar sürer; sonraki bacaklarda irtifa değişimleri TOC/BOD olarak gösterilir.</p>
+  <p class="note"><b>Koordinat kaynakları:</b> Kuzey-1'de Pınarca, Saray, Vize, Pınarhisar, Turgutbey, Pınarbaşı (E80 kavşağı) ve Güney-1'deki tüm noktalar Google Maps'te işaretlenen koordinatlardır. Velimeşe: Wikipedia, dakika hassasiyetinde. LTBU pist eşikleri: SkyVector. Değişiklikler tarayıcıda saklanır.</p>
 </details>
 
 <p class="note no-print">Bu araç planlama yardımcısıdır; resmi NOTAM, METAR/TAF ve AIP bilgileriyle kontrol edilmelidir.</p>
@@ -247,35 +249,60 @@ details summary{cursor:pointer;font:600 1.05rem var(--f-display);letter-spacing:
 
 <script>
 "use strict";
-/* ---------- defaults ---------- */
-const DEF_WPS=[
-  {id:"LTBU",name:"LTBU",lat:41.1383,lon:27.9191},
-  {id:"VLM",name:"Velimeşe",lat:41.2500,lon:27.8830},
-  {id:"PNC",name:"Pınarca",lat:41.338567,lon:28.016231},
-  {id:"SRY",name:"Saray",lat:41.444650,lon:27.919633},
-  {id:"VZE",name:"Vize",lat:41.573435,lon:27.766920},
-  {id:"PNH",name:"Pınarhisar",lat:41.625057,lon:27.519025},
-  {id:"TRG",name:"Turgutbey",lat:41.459459,lon:27.387931},
-  {id:"PNB",name:"Pınarbaşı",lat:41.3648,lon:27.6083}
-];
-const ROUTE=[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,1],[1,0]];
-const DEF_ALTS=[2000,2500,2500,2500,2500,1500,1500,1500,1500];
+/* ---------- routes ---------- */
+const LTBU={id:"LTBU",name:"LTBU",lat:41.1383,lon:27.9191};
+const ROUTES={
+  kuzey:{name:"Kuzey-1",
+    wps:[LTBU,
+      {id:"VLM",name:"Velimeşe",lat:41.2500,lon:27.8830},
+      {id:"PNC",name:"Pınarca",lat:41.338567,lon:28.016231},
+      {id:"SRY",name:"Saray",lat:41.444650,lon:27.919633},
+      {id:"VZE",name:"Vize",lat:41.573435,lon:27.766920},
+      {id:"PNH",name:"Pınarhisar",lat:41.625057,lon:27.519025},
+      {id:"TRG",name:"Turgutbey",lat:41.459459,lon:27.387931},
+      {id:"PNB",name:"Pınarbaşı",lat:41.3648,lon:27.6083}],
+    pairs:[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,1],[1,0]],
+    alts:[2000,2500,2500,2500,2500,1500,1500,1500,1500],
+    // departure steps: straight legs (nm, from a settings key) and fixed turns; "direct" = turn the short way onto the first waypoint
+    dep:{"04":[{d:"turnDist"},"direct"],"22":[{d:"turnDist"},"direct"]}},
+  guney:{name:"Güney-1",
+    wps:[LTBU,
+      {id:"MKS",name:"Maksutlu",lat:41.077068,lon:27.659399},
+      {id:"TKD",name:"Tekirdağ",lat:40.976285,lon:27.516140},
+      {id:"BNR",name:"Banarlı",lat:41.065674,lon:27.336316},
+      {id:"HYR",name:"Hayrabolu",lat:41.211682,lon:27.105071},
+      {id:"OKL",name:"Oklalı",lat:41.349195,lon:27.232760},
+      {id:"SYT",name:"Seyitali",lat:41.251676,lon:27.451090},
+      {id:"GLY",name:"Gölünyukarısı",lat:41.178049,lon:27.645881}],
+    pairs:[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,0]],
+    alts:[2000,2500,2500,2500,1500,1500,1500,1500],
+    dep:{"04":[{d:"turnDist"},{turn:-90},{d:"dogleg"},"direct"],"22":[{d:"turnDist"},"direct"]}}
+};
+const RT=()=>ROUTES[S.routeId]||ROUTES.kuzey;
+const WPS=()=>S.routes[S.routeId].wps;
+const LEGS=()=>S.routes[S.routeId].legs;
+const PAIRS=()=>RT().pairs;
+function routeDefaults(id){const R=ROUTES[id];return{wps:R.wps.map(w=>({...w})),legs:R.pairs.map((_,i)=>({alt:R.alts[i],spd:"",wd:"",ws:"",oat:"",manual:false,ata:""}))}}
 function todayStr(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
 function defaults(){return{
-  pilot:"",reg:"TC-",date:todayStr(),etd:"09:00",rwy:"04",spdCruise:100,spdMode:"IAS",iasClimb:74,roc:700,rod:500,qnh:1013,qnhAuto:true,vari:5,
+  pilot:"",reg:"TC-",date:todayStr(),etd:"09:00",rwy:"04",routeId:"kuzey",spdCruise:100,spdMode:"IAS",iasClimb:74,roc:700,rod:500,qnh:1013,qnhAuto:true,vari:5,
   fuel:50,gph:9,taxi:1,reserve:30,src:"openmeteo",omModel:"ecmwf",windyKey:"",windyModel:"gfs",
-  thrLat:41.1295,thrLon:27.9055,thr2Lat:41.1472,thr2Lon:27.9325,elev:570,roll:0.25,turnAlt:1500,bank:15,
-  wps:DEF_WPS.map(w=>({...w})),
-  legs:ROUTE.map((_,i)=>({alt:DEF_ALTS[i],spd:"",wd:"",ws:"",oat:"",manual:false,ata:""})),
+  thrLat:41.1295,thrLon:27.9055,thr2Lat:41.1472,thr2Lon:27.9325,elev:570,roll:0.25,turnDist:1.5,dogleg:0.5,bank:15,
+  routes:{kuzey:routeDefaults("kuzey"),guney:routeDefaults("guney")},
   dep:{icao:"LTBU / 570 ft",qnh:"",xpdr:"",gnd:"121.900",twr:"120.375",app:"119.925",vor:"114.80",ils:"110.50",wind:""},
   arr:{icao:"LTBU / 570 ft",qnh:"",xpdr:"",gnd:"121.900",twr:"120.375",app:"119.925",vor:"114.80",ils:"110.50",wind:""},
   rmk:""
 }}
-const LS="vfrNavlogLTBU.v3";
+const LS="vfrNavlogLTBU.v4";
 let S=defaults();
-try{const raw=localStorage.getItem(LS);if(raw){const o=JSON.parse(raw);S={...S,...o,dep:{...S.dep,...(o.dep||{})},arr:{...S.arr,...(o.arr||{})}};
-  if(!Array.isArray(S.wps)||S.wps.length!==DEF_WPS.length)S.wps=DEF_WPS.map(w=>({...w}));
-  if(!Array.isArray(S.legs)||S.legs.length!==ROUTE.length)S.legs=defaults().legs;}}catch(e){}
+// Carry entries over from earlier versions of this page instead of starting blank; the key stays fixed from now on.
+function legacyState(){for(const k of["vfrNavlogLTBU.v3","vfrNavlogLTBU.v2","vfrNavlogLTBU.v1"]){try{const r=localStorage.getItem(k);if(!r)continue;const o=JSON.parse(r);
+  const keep={};for(const f of["pilot","reg","date","etd","rwy","spdCruise","spdMode","iasClimb","roc","rod","qnh","qnhAuto","vari","fuel","gph","taxi","reserve","src","omModel","windyKey","windyModel","thrLat","thrLon","thr2Lat","thr2Lon","elev","roll","bank","dep","arr","rmk"])if(o[f]!==undefined)keep[f]=o[f];
+  if(Array.isArray(o.legs)&&o.legs.length===ROUTES.kuzey.pairs.length)keep.routes={kuzey:{wps:routeDefaults("kuzey").wps,legs:o.legs}};
+  localStorage.removeItem(k);return keep}catch(e){}}return null}
+try{let raw=localStorage.getItem(LS);let o=raw?JSON.parse(raw):legacyState();if(o){S={...S,...o,dep:{...S.dep,...(o.dep||{})},arr:{...S.arr,...(o.arr||{})},routes:{...S.routes,...(o.routes||{})}};
+  for(const id of Object.keys(ROUTES)){const r=S.routes[id];if(!r||!Array.isArray(r.wps)||r.wps.length!==ROUTES[id].wps.length||!Array.isArray(r.legs)||r.legs.length!==ROUTES[id].pairs.length)S.routes[id]=routeDefaults(id)}
+  if(!ROUTES[S.routeId])S.routeId="kuzey";}}catch(e){}
 let WXM=null; // Open-Meteo: {ecmwf:WX, icon:WX, gfs:WX}
 let WX=null; // {source, model, perWp:[{elev, hours:[{t, lv:[{h,u,v,T}]}]}], qnh:[{t,p}]}
 function save(){try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}}
@@ -345,7 +372,7 @@ const OM_SHORT={ecmwf:"EC",icon:"ICON",gfs:"GFS"};
 let OM_ERRORS=[];
 async function fetchOneModel(key,host){
   const [mid,label,levels]=OM_MODELS[key];
-  const lats=S.wps.map(w=>w.lat.toFixed(4)).join(","),lons=S.wps.map(w=>w.lon.toFixed(4)).join(",");
+  const lats=WPS().map(w=>w.lat.toFixed(4)).join(","),lons=WPS().map(w=>w.lon.toFixed(4)).join(",");
   const vars=[];for(const L of levels)vars.push(`temperature_${L}hPa`,`wind_speed_${L}hPa`,`wind_direction_${L}hPa`,`geopotential_height_${L}hPa`);
   vars.push("pressure_msl","temperature_2m","wind_speed_10m","wind_direction_10m");
   const url=`${host}?latitude=${lats}&longitude=${lons}&hourly=${vars.join(",")}&models=${mid}&wind_speed_unit=kn&timezone=Europe%2FIstanbul&start_date=${S.date}&end_date=${addDays(S.date,1)}`;
@@ -393,8 +420,8 @@ async function fetchWindy(){
   const levels=["surface","1000h","950h","925h","900h","850h"];
   const base=Date.UTC(...S.date.split("-").map((x,i)=>i===1?x-1:+x));
   const perWp=[];let qnh=[];
-  for(let i=0;i<S.wps.length;i++){
-    let j;try{j=await windyPoint(S.wps[i],["wind","temp","gh","pressure"],levels)}catch(e){j=await windyPoint(S.wps[i],["wind","temp"],levels)}
+  for(let i=0;i<WPS().length;i++){
+    let j;try{j=await windyPoint(WPS()[i],["wind","temp","gh","pressure"],levels)}catch(e){j=await windyPoint(WPS()[i],["wind","temp"],levels)}
     const hours=j.ts.map((ts,k)=>{const lv=[];
       for(const L of levels){const u=j[`wind_u-${L}`],v=j[`wind_v-${L}`],T=j[`temp-${L}`];if(!u||!v||!T)continue;
         let h;if(L==="surface")h=(i===0?S.elev*0.3048:150)+10;else{const g=j[`gh-${L}`];h=g&&g[k]!=null?g[k]:ISA_H[parseInt(L)]}
@@ -409,39 +436,53 @@ async function fetchWindy(){
 }
 
 /* ---------- departure path ---------- */
-function departure(tasClimb,ctx,rwy){
-  const o=S.wps[0];const thr={lat:S.thrLat,lon:S.thrLon},thr2={lat:S.thr2Lat,lon:S.thr2Lon};
+// Builds the departure track for a runway as a list of segments: straight legs and arcs, ending direct to the first waypoint.
+function departure(tasClimb,rwy){
+  const o=WPS()[0];const thr={lat:S.thrLat,lon:S.thrLon},thr2={lat:S.thr2Lat,lon:S.thr2Lon};
   const [A,B]=rwy==="22"?[thr2,thr]:[thr,thr2];
-  const P0=enu(o,A),T=enu(o,S.wps[1]);const rh=brgXY(P0,enu(o,B));
-  const gA=triangle(rh,tasClimb,ctx.wd,ctx.ws);const gsA=isFinite(gA.gs)?gA.gs:tasClimb;
-  const climbA=Math.max(0,S.turnAlt-S.elev);const tA=climbA/S.roc; // min
-  const dA=S.roll+gsA*tA/60;
-  const tRoll=S.roll/30*60;
-  let p={x:P0.x+dA*Math.sin(rh*D2R),y:P0.y+dA*Math.cos(rh*D2R)};
-  const P1={...p};
-  // turn toward Velimeşe the short way; radius from TAS & bank: r = V^2/(g tanφ)
-  const dir=n180(brgXY(p,T)-rh)<0?-1:1; // -1 left, +1 right
-  const v=tasClimb*0.514444;const r=(v*v/(9.80665*Math.tan(Math.max(5,S.bank)*D2R)))/1852;
-  let hdg=rh,arc=0;const path=[P0,P1];const step=1;
-  for(let k=0;k<720;k++){const rel=n180(brgXY(p,T)-hdg);if(rel*dir<=0||distXY(p,T)<0.05)break;
-    const mid=hdg+dir*step/2;const ds=r*step*D2R;p={x:p.x+ds*Math.sin(mid*D2R),y:p.y+ds*Math.cos(mid*D2R)};hdg=n360(hdg+dir*step);arc+=ds;path.push({...p})}
-  const tcB=brgXY(p,T),sB=distXY(p,T);path.push(T);
-  const tArc=arc/tasClimb*60;
-  return{rwy,dir,rh,dA,tA:tA+tRoll,gsA,thA:gA.th,wcaA:gA.wca,P1,exit:p,r,arc,tArc,tcB,sB,path,turnDeg:n360(dir*(hdg-rh))};
+  const P0=enu(o,A),T=enu(o,WPS()[1]);const rh=brgXY(P0,enu(o,B));
+  const v=tasClimb*0.514444;const r=(v*v/(9.80665*Math.tan(Math.max(5,S.bank)*D2R)))/1852; // turn radius nm
+  let p={...P0},hdg=rh;const path=[P0];const segs=[];const step=1;
+  const arcTo=(dir,stop)=>{let arc=0,deg=0;for(let k=0;k<720;k++){if(stop(deg))break;
+      const mid=hdg+dir*step/2;const ds=r*step*D2R;p={x:p.x+ds*Math.sin(mid*D2R),y:p.y+ds*Math.cos(mid*D2R)};hdg=n360(hdg+dir*step);arc+=ds;deg+=step;path.push({...p})}
+    segs.push({kind:"arc",dir,deg,dist:arc})};
+  const steps=RT().dep[rwy]||RT().dep["04"];
+  for(const st of steps){
+    if(st==="direct"){const dir=n180(brgXY(p,T)-hdg)<0?-1:1;arcTo(dir,()=>n180(brgXY(p,T)-hdg)*dir<=0||distXY(p,T)<0.05);
+      segs.push({kind:"straight",tc:brgXY(p,T),dist:distXY(p,T),to:WPS()[1].name});p={...T};path.push(T);}
+    else if(st.turn!=null){const dir=st.turn<0?-1:1,want=Math.abs(st.turn);arcTo(dir,deg=>deg>=want)}
+    else{const d=+S[st.d]||0;p={x:p.x+d*Math.sin(hdg*D2R),y:p.y+d*Math.cos(hdg*D2R)};path.push({...p});segs.push({kind:"straight",tc:hdg,dist:d})}
+  }
+  return{rwy,rh,r,segs,path};
 }
-// first leg (departure) for a given runway: two sub-segments and the leg totals
+// First leg for a runway: groups each straight segment with the arc before it into a sub-row and tracks the climb along the way.
 function depLeg(rwy,climbTas,ctx,sp,alt,to){
-  const D=departure(climbTas,ctx,rwy);const subs=[];
-  subs.push({label:`RWY ${rwy} → ${S.turnAlt} ft`,tc:D.rh,wca:D.wcaA,th:D.thA,gs:D.gsA,dist:D.dA,time:D.tA,spdTxt:`${Math.round(S.iasClimb)} / ${Math.round(climbTas)}`});
-  const gB=triangle(D.tcB,climbTas,ctx.wd,ctx.ws);const gsBc=isFinite(gB.gs)?gB.gs:climbTas;
-  const gC=triangle(D.tcB,sp.tas,ctx.wd,ctx.ws);
-  let need=Math.max(0,alt-S.turnAlt)-S.roc*D.tArc;let tB=D.tArc,dClimb=0;
-  if(need>0){const t=need/S.roc;dClimb=Math.min(D.sB,gsBc*t/60);tB+=dClimb/gsBc*60+(D.sB-dClimb)/gC.gs*60;}
-  else tB+=D.sB/gC.gs*60;
-  subs.push({label:`${D.dir<0?"Sola":"Sağa"} ${Math.round(D.turnDeg)}° dönüş → ${to.name}`,tc:D.tcB,wca:gC.wca,th:gC.th,gs:gC.gs,dist:D.arc+D.sB,time:tB,
-    spdTxt:`${Math.round(sp.ias)} / ${Math.round(sp.tas)}`,hint:`dönüş ${f1(D.arc)} nm + düz ${f1(D.sB)} nm`});
-  const note=need>0?`${alt} ft'e dönüş çıkışından ${f1(dClimb)} nm sonra`:`${alt} ft'e dönüşte`;
-  return{dep:D,subs,note,dist:D.dA+D.arc+D.sB,time:D.tA+tB,tc:D.tcB,th:gC.th,gs:gC.gs,wca:gC.wca};
+  const D=departure(climbTas,rwy);const subs=[];
+  let altNow=S.elev,distSoFar=0,toc=null,pendingArc=null,first=true;
+  const tRoll=S.roll/30*60;let total={dist:0,time:tRoll};
+  const climbStep=(dist,tc)=>{
+    const gCl=triangle(tc,climbTas,ctx.wd,ctx.ws),gCr=triangle(tc,sp.tas,ctx.wd,ctx.ws);
+    const gsCl=isFinite(gCl.gs)?gCl.gs:climbTas,gsCr=isFinite(gCr.gs)?gCr.gs:sp.tas;
+    let time=0,dCl=0;
+    if(altNow<alt-1){const tRem=(alt-altNow)/S.roc;dCl=Math.min(dist,gsCl*tRem/60);time+=dCl/gsCl*60;altNow+=S.roc*(dCl/gsCl*60);
+      if(altNow>=alt-1&&toc==null)toc=distSoFar+dCl;}
+    time+=(dist-dCl)/gsCr*60;
+    const cruise=dCl<dist/2;return{time,gs:cruise?gsCr:gsCl,wca:cruise?gCr.wca:gCl.wca,th:cruise?gCr.th:gCl.th,cruise};
+  };
+  for(const sg of D.segs){
+    if(sg.kind==="arc"){const t=sg.dist/climbTas*60;if(altNow<alt){altNow=Math.min(alt,altNow+S.roc*t);if(altNow>=alt-1&&toc==null)toc=distSoFar+sg.dist}
+      distSoFar+=sg.dist;total.dist+=sg.dist;total.time+=t;pendingArc=sg;continue}
+    const c=climbStep(sg.dist,sg.tc);distSoFar+=sg.dist;total.dist+=sg.dist;total.time+=c.time;
+    let label,hint="";
+    if(first){label=`RWY ${rwy} pist yönünde ${f1(sg.dist)} nm`;hint=`≈${Math.round(altNow/50)*50} ft'e tırmanış`;first=false}
+    else{const a=pendingArc;label=`${a.dir<0?"Sola":"Sağa"} ${Math.round(a.deg)}° dönüş → ${sg.to||f1(sg.dist)+" nm düz"}`;hint=`dönüş ${f1(a.dist)} nm + düz ${f1(sg.dist)} nm`}
+    const spdTxt=c.cruise?`${Math.round(sp.ias)} / ${Math.round(sp.tas)}`:`${Math.round(S.iasClimb)} / ${Math.round(climbTas)}`;
+    subs.push({label,hint,tc:sg.tc,wca:c.wca,th:c.th,gs:c.gs,dist:(pendingArc?pendingArc.dist:0)+sg.dist,time:c.time+(pendingArc?pendingArc.dist/climbTas*60:0),spdTxt});
+    pendingArc=null;
+  }
+  const last=subs[subs.length-1];
+  const note=toc!=null?`TOC ${alt} ft: kalkıştan ${f1(toc)} nm`:`${alt} ft'e ulaşılamıyor`;
+  return{dep:D,subs,note,dist:total.dist,time:total.time,tc:last.tc,th:last.th,gs:last.gs,wca:last.wca};
 }
 
 /* ---------- compute ---------- */
@@ -461,8 +502,8 @@ function compute(){
   const res=[];let clock=etdMin();
   if(WX&&S.qnhAuto){const q=qnhAt(clock);if(q){S.qnh=Math.round(q);document.getElementById("qnh").value=S.qnh}}
   let prevAlt=S.elev;
-  ROUTE.forEach(([fi,ti],i)=>{
-    const L=S.legs[i];const from=S.wps[fi],to=S.wps[ti];const alt=+L.alt||1500;
+  PAIRS().forEach(([fi,ti],i)=>{
+    const L=LEGS()[i];const from=WPS()[fi],to=WPS()[ti];const alt=+L.alt||1500;
     const meanAlt=i===0?(S.elev+alt)/2:(prevAlt+alt)/2;
     // auto weather
     if(WX&&!L.manual){const w=legWx(fi,ti,clock+5,meanAlt);if(w){L.wd=w.wd;L.ws=w.ws;L.oat=w.oat}}
@@ -497,7 +538,7 @@ function compute(){
 const $=id=>document.getElementById(id);
 function buildTable(){
   const tb=$("navBody");tb.innerHTML="";
-  ROUTE.forEach(([fi,ti],i)=>{
+  PAIRS().forEach(([fi,ti],i)=>{
     const tr=document.createElement("tr");tr.className="leg";tr.id="leg"+i;
     tr.innerHTML=`<td class="ft"><span id="fn${i}"></span><span id="tn${i}"></span></td>
       <td><input type="number" step="100" id="alt${i}" aria-label="Plan irtifa"></td>
@@ -509,10 +550,7 @@ function buildTable(){
       <td class="calc" id="dist${i}"></td><td class="calc" id="time${i}"></td><td class="calc" id="fuel${i}"></td><td class="calc" id="eta${i}"></td>
       <td><input id="ata${i}" style="width:4.2em" aria-label="ATA"></td>`;
     tb.appendChild(tr);
-    if(i===0){for(let k=0;k<2;k++){const s=document.createElement("tr");s.className="sub";s.id=`sub0_${k}`;
-      s.innerHTML=`<td class="ft" id="sl${k}"></td><td></td><td id="ss${k}"></td><td id="stc${k}"></td><td></td><td id="smc${k}"></td><td colspan="2"></td><td id="swca${k}"></td><td id="shdg${k}"></td><td id="sgs${k}"></td><td id="sd${k}"></td><td id="st${k}"></td><td colspan="3"></td>`;
-      tb.appendChild(s)}}
-    const L=S.legs[i];
+    const L=LEGS()[i];
     const bind=(id,key,manual)=>{const el=$(id+i);el.value=L[key]??"";el.addEventListener("input",()=>{L[key]=el.value;if(manual)L.manual=true;save();compute()})};
     bind("alt","alt");bind("spd","spd");bind("wd","wd",1);bind("ws","ws",1);bind("oat","oat",1);bind("ata","ata");
     $("tag"+i).addEventListener("click",()=>{L.manual=false;if(!WX){L.wd="";L.ws="";L.oat=""}save();compute()});
@@ -523,11 +561,11 @@ function render(res){
   $("thSpd").innerHTML=S.spdMode==="TAS"?"TAS / IAS<br>(kt)":"IAS / TAS<br>(kt)";
   let dist=0,time=0;
   res.forEach(r=>{const i=r.i;
-    $("fn"+i).textContent=S.wps[r.fi].name.toLocaleUpperCase("tr");$("tn"+i).textContent=S.wps[r.ti].name.toLocaleUpperCase("tr");
+    $("fn"+i).textContent=WPS()[r.fi].name.toLocaleUpperCase("tr");$("tn"+i).textContent=WPS()[r.ti].name.toLocaleUpperCase("tr");
     $("spd"+i).placeholder=String(S.spdCruise);
     $("spdH"+i).textContent=S.spdMode==="TAS"?`IAS ${Math.round(r.sp.ias)}`:`TAS ${Math.round(r.sp.tas)}`;
     $("tc"+i).textContent=f0(r.tc);$("v"+i).textContent=vTxt;$("mc"+i).textContent=f0(n360(r.tc-V));
-    const L=S.legs[i];
+    const L=LEGS()[i];
     for(const k of["wd","ws","oat"]){const el=$(k+i);if(document.activeElement!==el)el.value=L[k]??"";
       el.placeholder=k==="oat"?String(Math.round(r.oat)):"0";}
     $("tag"+i).hidden=!L.manual;
@@ -536,8 +574,10 @@ function render(res){
     $("hdg"+i).textContent=f0(n360(r.th-V));$("gs"+i).textContent=isFinite(r.gs)?Math.round(r.gs):"–";
     $("dist"+i).textContent=f1(r.dist);$("time"+i).innerHTML=fmtT(r.time)+(r.note?`<span class="hint">${r.note}</span>`:"");
     $("fuel"+i).textContent=f1(r.fuel);$("eta"+i).textContent=fmtClock(r.eta);
-    if(i===0)r.subs.forEach((s,k)=>{$("sl"+k).innerHTML=s.label+(s.hint?`<span class="hint">${s.hint}</span>`:"");$("ss"+k).textContent=s.spdTxt;$("stc"+k).textContent=f0(s.tc);$("smc"+k).textContent=f0(n360(s.tc-V));
-      $("swca"+k).textContent=isFinite(s.wca)?(s.wca>=0?"+":"−")+Math.abs(Math.round(s.wca)):"–";$("shdg"+k).textContent=f0(n360(s.th-V));$("sgs"+k).textContent=Math.round(s.gs);$("sd"+k).textContent=f1(s.dist);$("st"+k).textContent=fmtT(s.time)});
+    if(i===0){document.querySelectorAll("#navBody tr.sub").forEach(e=>e.remove());let after=$("leg0");
+      r.subs.forEach(s=>{const tr=document.createElement("tr");tr.className="sub";
+        tr.innerHTML=`<td class="ft">${s.label}${s.hint?`<span class="hint">${s.hint}</span>`:""}</td><td></td><td>${s.spdTxt}</td><td>${f0(s.tc)}</td><td></td><td>${f0(n360(s.tc-V))}</td><td colspan="2"></td><td>${isFinite(s.wca)?(s.wca>=0?"+":"−")+Math.abs(Math.round(s.wca)):"–"}</td><td>${f0(n360(s.th-V))}</td><td>${Math.round(s.gs)}</td><td>${f1(s.dist)}</td><td>${fmtT(s.time)}</td><td colspan="3"></td>`;
+        after.insertAdjacentElement("afterend",tr);after=tr})}
     dist+=r.dist;time+=r.time;});
   const trip=time/60*S.gph,req=trip+S.taxi+S.reserve/60*S.gph,rem=S.fuel-trip-S.taxi;
   $("totDist").textContent=f1(dist);$("totTime").textContent=fmtT(time);$("totFuel").textContent=f1(trip);$("totEta").textContent=fmtClock(etdMin()+time);
@@ -553,24 +593,24 @@ function renderAlt(res){
   $("altThSpd").textContent=S.spdMode==="TAS"?"TAS / IAS":"IAS / TAS";
   const cell=s=>`<td>${s.spdTxt}</td><td class="calc">${f0(s.tc)}</td><td class="calc">${f0(n360(s.tc-V))}</td><td class="calc">${isFinite(s.wca)?(s.wca>=0?"+":"−")+Math.abs(Math.round(s.wca)):"–"}</td><td class="calc">${f0(n360(s.th-V))}</td><td class="calc">${Math.round(s.gs)}</td><td class="calc">${f1(s.dist)}</td><td class="calc">${fmtT(s.time)}</td>`;
   $("altBody").innerHTML=A.subs.map(s=>`<tr class="sub"><td class="ft">${s.label}${s.hint?`<span class="hint">${s.hint}</span>`:""}</td>${cell(s)}</tr>`).join("")+
-    `<tr class="leg"><td class="ft">LTBU → ${S.wps[1].name.toLocaleUpperCase("tr")} toplam</td><td></td><td class="calc">${f0(A.tc)}</td><td class="calc">${f0(n360(A.tc-V))}</td><td></td><td class="calc">${f0(n360(A.th-V))}</td><td class="calc">${Math.round(A.gs)}</td><td class="calc">${f1(A.dist)}</td><td class="calc">${fmtT(A.time)}<span class="hint">${A.note}</span></td></tr>`;
+    `<tr class="leg"><td class="ft">LTBU → ${WPS()[1].name.toLocaleUpperCase("tr")} toplam</td><td></td><td class="calc">${f0(A.tc)}</td><td class="calc">${f0(n360(A.tc-V))}</td><td></td><td class="calc">${f0(n360(A.th-V))}</td><td class="calc">${Math.round(A.gs)}</td><td class="calc">${f1(A.dist)}</td><td class="calc">${fmtT(A.time)}<span class="hint">${A.note}</span></td></tr>`;
   const dd=A.dist-r0.dist,dt=A.time-r0.time;
   $("altNote").textContent=`RWY ${A.rwy} ile kalkışta ilk bacak RWY ${S.rwy}'e göre ${Math.abs(dd).toFixed(1)} nm ${dd>=0?"daha uzun":"daha kısa"} ve ${Math.abs(Math.round(dt*60))} saniye ${dt>=0?"daha uzun":"daha kısa"} sürer; tüm navlogu RWY ${A.rwy} ile hesaplamak için yukarıdan kalkış pistini değiştirin.`;
 }
 function drawMap(res){
-  const o=S.wps[0];const pts=S.wps.map(w=>enu(o,w));const D=res[0].dep;
+  const o=WPS()[0];const pts=WPS().map(w=>enu(o,w));const D=res[0].dep;
   const all=[...pts,...D.path];const xs=all.map(p=>p.x),ys=all.map(p=>p.y);
   const W=520,H=420,pad=40;const minx=Math.min(...xs),maxx=Math.max(...xs),miny=Math.min(...ys),maxy=Math.max(...ys);
   const sc=Math.min((W-2*pad)/(maxx-minx),(H-2*pad)/(maxy-miny));
   const ox=(W-(maxx-minx)*sc)/2,oy=(H-(maxy-miny)*sc)/2;
   const X=p=>ox+(p.x-minx)*sc,Y=p=>H-oy-(p.y-miny)*sc;
   let s="";
-  const lines=ROUTE.slice(1).map(([a,b])=>`M${X(pts[a]).toFixed(1)},${Y(pts[a]).toFixed(1)}L${X(pts[b]).toFixed(1)},${Y(pts[b]).toFixed(1)}`).join("");
+  const lines=PAIRS().slice(1).map(([a,b])=>`M${X(pts[a]).toFixed(1)},${Y(pts[a]).toFixed(1)}L${X(pts[b]).toFixed(1)},${Y(pts[b]).toFixed(1)}`).join("");
   s+=`<path d="${lines}" stroke="var(--accent)" stroke-width="2" fill="none"/>`;
   s+=`<path d="M${D.path.map(p=>X(p).toFixed(1)+","+Y(p).toFixed(1)).join("L")}" stroke="var(--hand)" stroke-width="2" stroke-dasharray="5 3" fill="none"/>`;
   res.forEach(r=>{if(r.i===0)return;const a=pts[r.fi],b=pts[r.ti];const mx=(X(a)+X(b))/2,my=(Y(a)+Y(b))/2;
     s+=`<text class="lbl" x="${mx.toFixed(0)}" y="${my.toFixed(0)}" text-anchor="middle" style="font-size:10px;fill:var(--muted)">${f0(r.tc)}° ${f1(r.dist)}</text>`});
-  S.wps.forEach((w,i)=>{const x=X(pts[i]),y=Y(pts[i]);s+=`<circle cx="${x}" cy="${y}" r="${i?4:6}" fill="${i?"var(--panel)":"var(--accent)"}" stroke="var(--ink)" stroke-width="1.5"/>`;
+  WPS().forEach((w,i)=>{const x=X(pts[i]),y=Y(pts[i]);s+=`<circle cx="${x}" cy="${y}" r="${i?4:6}" fill="${i?"var(--panel)":"var(--accent)"}" stroke="var(--ink)" stroke-width="1.5"/>`;
     s+=`<text class="lbl" x="${x+8}" y="${y-7}">${w.name}</text>`});
   s+=`<g transform="translate(${W-28},34)"><path d="M0,-18L6,4L0,0L-6,4Z" fill="var(--ink)"/><text y="16" text-anchor="middle" style="font-size:10px">N (T)</text></g>`;
   $("map").innerHTML=s;
@@ -581,11 +621,11 @@ function buildBoxes(){
     rows.forEach(([k])=>{const el=$(`${side}_${k}`);el.value=S[side][k]||"";el.addEventListener("input",()=>{S[side][k]=el.value;save()})})}
 }
 function buildCoords(){
-  $("coBody").innerHTML=S.wps.map((w,i)=>`<tr><td>${w.name}${i===0?" (ARP)":""}</td><td><input type="number" step="0.0001" id="la${i}" value="${w.lat}"></td><td><input type="number" step="0.0001" id="lo${i}" value="${w.lon}"></td>
+  $("coBody").innerHTML=WPS().map((w,i)=>`<tr><td>${w.name}${i===0?" (ARP)":""}</td><td><input type="number" step="0.0001" id="la${i}" value="${w.lat}"></td><td><input type="number" step="0.0001" id="lo${i}" value="${w.lon}"></td>
     <td><a id="gm${i}" target="_blank" rel="noopener">Google Maps</a> · <a id="wy${i}" target="_blank" rel="noopener">Windy</a></td></tr>`).join("");
-  const links=()=>S.wps.forEach((w,i)=>{$("gm"+i).href=`https://www.google.com/maps?q=${w.lat},${w.lon}`;$("wy"+i).href=`https://www.windy.com/${w.lat}/${w.lon}?${w.lat},${w.lon},10`});
+  const links=()=>WPS().forEach((w,i)=>{$("gm"+i).href=`https://www.google.com/maps?q=${w.lat},${w.lon}`;$("wy"+i).href=`https://www.windy.com/${w.lat}/${w.lon}?${w.lat},${w.lon},10`});
   links();
-  S.wps.forEach((w,i)=>{for(const [p,k] of[["la","lat"],["lo","lon"]]){$(p+i).addEventListener("input",e=>{const v=parseFloat(e.target.value);if(isFinite(v)){w[k]=v;WX=null;WXM=null;save();links();compute()}})}});
+  WPS().forEach((w,i)=>{for(const [p,k] of[["la","lat"],["lo","lon"]]){$(p+i).addEventListener("input",e=>{const v=parseFloat(e.target.value);if(isFinite(v)){w[k]=v;WX=null;WXM=null;save();links();compute()}})}});
 }
 function bindFields(){
   document.querySelectorAll("[data-k]").forEach(el=>{const k=el.dataset.k;el.value=S[k]??"";
@@ -593,7 +633,7 @@ function bindFields(){
       S[k]=v;if(k==="qnh")S.qnhAuto=false;if(k==="date"){WX=null;WXM=null}save();if(k!=="windyKey"&&k!=="pilot"&&k!=="reg"&&k!=="rmk")compute()})});
   const src=S.src==="windy"?$("srcWindy"):$("srcOM");src.checked=true;
   const showW=()=>{$("windyBox").hidden=S.src!=="windy";$("omBox").hidden=S.src==="windy"};showW();
-  $("omModel").addEventListener("change",()=>{if(WXM&&WXM[S.omModel]){WX=WXM[S.omModel];S.legs.forEach(L=>L.manual=false);compute();
+  $("omModel").addEventListener("change",()=>{if(WXM&&WXM[S.omModel]){WX=WXM[S.omModel];LEGS().forEach(L=>L.manual=false);compute();
     $("wxStatus").className="status ok";$("wxStatus").textContent=`Open-Meteo (${WX.model}) verisi kullanılıyor.`}});
   document.querySelectorAll('input[name=src]').forEach(r=>r.addEventListener("change",()=>{S.src=r.value;save();showW()}));
 }
@@ -601,12 +641,12 @@ async function doFetch(){
   const st=$("wxStatus"),b=$("btnFetch");b.disabled=true;st.className="status";st.textContent="Veri çekiliyor…";
   try{
     if(S.src==="windy"){WXM=null;WX=await fetchWindy()}else{WXM=await fetchOpenMeteo();WX=WXM[S.omModel]||Object.values(WXM)[0]}
-    S.legs.forEach(L=>L.manual=false);S.qnhAuto=true;save();compute();
+    LEGS().forEach(L=>L.manual=false);S.qnhAuto=true;save();compute();
     st.className="status ok";st.textContent=`${WX.source} (${WX.model}) verisi yüklendi: ${S.date.split("-").reverse().join(".")} · ETD ${S.etd} yerel. QNH tahmini LTBU ${S.qnh} hPa.`+(OM_ERRORS.length?" Alınamayan modeller: "+OM_ERRORS.join("; "):"");
   }catch(e){
     const blocked=e instanceof TypeError;
     if(S.src==="windy"&&!blocked){st.className="status err";st.textContent=e.message+" Open-Meteo deneniyor…";
-      try{WXM=await fetchOpenMeteo();WX=WXM[S.omModel]||Object.values(WXM)[0];S.legs.forEach(L=>L.manual=false);S.qnhAuto=true;save();compute();st.className="status ok";st.textContent=e.message+" Bunun yerine Open-Meteo ("+WX.model+") verisi yüklendi.";}
+      try{WXM=await fetchOpenMeteo();WX=WXM[S.omModel]||Object.values(WXM)[0];LEGS().forEach(L=>L.manual=false);S.qnhAuto=true;save();compute();st.className="status ok";st.textContent=e.message+" Bunun yerine Open-Meteo ("+WX.model+") verisi yüklendi.";}
       catch(e2){st.className="status err";st.textContent=e.message+" / "+e2.message}}
     else{st.className="status err";st.textContent=blocked?(/claude\.ai|claudeusercontent|anthropic/.test(location.hostname)?"Bu önizleme sayfası dış sunuculara bağlanamıyor, bu yüzden hava verisi burada çekilemez. index.html dosyasını indirip bilgisayarınızda açın ya da GitHub Pages adresini kullanın. Burada rüzgar ve OAT değerlerini tabloya elle girebilirsiniz.":"Hava verisi sunucusuna bağlanılamadı (internet bağlantısını ya da reklam engelleyiciyi kontrol edin). Rüzgar ve OAT değerlerini tabloya elle girebilirsiniz."):e.message}
   }finally{b.disabled=false}
@@ -619,8 +659,11 @@ function conv(src){
   const pa=pressAlt(a,q),da=densAlt(s);
   $("cOut").innerHTML=`Basınç irtifası <b class="out">${Math.round(pa)} ft</b> · Yoğunluk irtifası <b class="out">${Math.round(da)} ft</b> · ISA sıcaklığı <b class="out">${isaT(a,q).toFixed(1)} °C</b> · ρ/ρ₀ <b class="out">${s.toFixed(3)}</b>`;
 }
+function routeLine(){const n=WPS().map(w=>w.name);const seq=PAIRS().map(([a])=>n[a]).concat(n[PAIRS()[PAIRS().length-1][1]]);$("routeLine").textContent=RT().name+" · "+seq.join(" · ")}
 function init(){
-  bindFields();buildTable();buildBoxes();buildCoords();
+  bindFields();buildTable();buildBoxes();buildCoords();routeLine();
+  $("routeId").value=S.routeId;
+  $("routeId").addEventListener("change",()=>{S.routeId=$("routeId").value;WX=null;WXM=null;$("wxStatus").textContent="";save();buildTable();buildCoords();routeLine();compute()});
   $("btnFetch").addEventListener("click",doFetch);
   $("btnReset").addEventListener("click",()=>{const k=S.windyKey;S=defaults();S.windyKey=k;WX=null;save();location.reload()});
   $("btnPrint").addEventListener("click",()=>window.print());
