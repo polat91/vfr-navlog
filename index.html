@@ -273,7 +273,7 @@ const ROUTES={
       {id:"HYR",name:"Hayrabolu",lat:41.211682,lon:27.105071},
       {id:"OKL",name:"Oklalı",lat:41.349195,lon:27.232760},
       {id:"SYT",name:"Seyitali",lat:41.251676,lon:27.451090},
-      {id:"GLY",name:"Gölünyukarısı",lat:41.178049,lon:27.645881}],
+      {id:"SGL",name:"Sağlık",lat:41.178049,lon:27.645881}],
     pairs:[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,0]],
     alts:[2000,2500,2500,2500,1500,1500,1500,1500],
     dep:{"04":[{d:"turnDist"},{turn:-90},{d:"dogleg"},"direct"],"22":[{d:"turnDist"},"direct"]}}
@@ -302,7 +302,9 @@ function legacyState(){for(const k of["vfrNavlogLTBU.v3","vfrNavlogLTBU.v2","vfr
   localStorage.removeItem(k);return keep}catch(e){}}return null}
 try{let raw=localStorage.getItem(LS);let o=raw?JSON.parse(raw):legacyState();if(o){S={...S,...o,dep:{...S.dep,...(o.dep||{})},arr:{...S.arr,...(o.arr||{})},routes:{...S.routes,...(o.routes||{})}};
   for(const id of Object.keys(ROUTES)){const r=S.routes[id];if(!r||!Array.isArray(r.wps)||r.wps.length!==ROUTES[id].wps.length||!Array.isArray(r.legs)||r.legs.length!==ROUTES[id].pairs.length)S.routes[id]=routeDefaults(id)}
-  if(!ROUTES[S.routeId])S.routeId="kuzey";}}catch(e){}
+  if(!ROUTES[S.routeId])S.routeId="kuzey";
+  // renames of default waypoints carry over into saved copies
+  for(const id of Object.keys(ROUTES))ROUTES[id].wps.forEach((w,i)=>{const sw=S.routes[id].wps[i];if(sw&&sw.id!==w.id&&(sw.name==="Gölünyukarısı"))Object.assign(sw,{id:w.id,name:w.name})});}}catch(e){}
 let WXM=null; // Open-Meteo: {ecmwf:WX, icon:WX, gfs:WX}
 let WX=null; // {source, model, perWp:[{elev, hours:[{t, lv:[{h,u,v,T}]}]}], qnh:[{t,p}]}
 function save(){try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}}
