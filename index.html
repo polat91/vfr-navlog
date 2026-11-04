@@ -155,6 +155,7 @@ details summary{cursor:pointer;font:600 1.05rem var(--f-display);letter-spacing:
     <label class="f">Kalkış pisti<select id="rwy" data-k="rwy"><option value="04">RWY 04</option><option value="22">RWY 22</option></select></label>
     <label class="f">Seyir hızı<input id="spdCruise" type="number" step="1" data-k="spdCruise" data-num></label>
     <label class="f">Girilen hız tipi<select id="spdMode" data-k="spdMode"><option value="IAS">IAS</option><option value="TAS">TAS</option></select></label>
+    <label class="f">IAS → CAS düzeltmesi<select id="casCorr" data-k="casCorr"><option value="afm">DA 42 NG AFM tablosu (flap UP)</option><option value="none">Yok (IAS = CAS)</option></select></label>
     <label class="f">Tırmanış IAS (kt)<input id="iasClimb" type="number" step="1" data-k="iasClimb" data-num></label>
     <label class="f">Tırmanış oranı (ft/dk)<input id="roc" type="number" step="50" data-k="roc" data-num></label>
     <label class="f">Alçalma oranı (ft/dk)<input id="rod" type="number" step="50" data-k="rod" data-num></label>
@@ -231,16 +232,17 @@ details summary{cursor:pointer;font:600 1.05rem var(--f-display);letter-spacing:
 
 <section class="two">
   <div class="panel">
-    <h2>IAS ↔ TAS hesaplayıcı</h2>
+    <h2>IAS ↔ CAS ↔ TAS hesaplayıcı</h2>
     <div class="conv">
       <label class="f">İrtifa (ft)<input id="cAlt" type="number" value="2500"></label>
       <label class="f">QNH (hPa)<input id="cQnh" type="number" value="1013"></label>
       <label class="f">OAT (°C)<input id="cOat" type="number" value="10"></label>
       <label class="f">IAS (kt)<input id="cIas" type="number" value="100"></label>
+      <label class="f">CAS (kt)<input id="cCas" type="number" value="" readonly tabindex="-1"></label>
       <label class="f">TAS (kt)<input id="cTas" type="number" value=""></label>
     </div>
     <p class="note" id="cOut" style="margin-top:10px"></p>
-    <p class="note">Basınç irtifası = irtifa + (1013,25 − QNH) düzeltmesi; yoğunluk ISA standart atmosferinden ve OAT'den bulunur, TAS = IAS / √(ρ/ρ₀). Bu hızlarda sıkıştırılabilirlik etkisi ihmal edilir, IAS ≈ CAS kabul edilir.</p>
+    <p class="note">Basınç irtifası = irtifa + (1013,25 − QNH) düzeltmesi; yoğunluk ISA standart atmosferinden ve OAT'den bulunur, önce IAS, DA 42 NG AFM bölüm 5.3.1 hava hızı kalibrasyon tablosundan (flap UP) CAS'a çevrilir, sonra TAS = CAS / √(ρ/ρ₀). Tablo noktaları arasında doğrusal ara değer alınır. Bu hızlarda sıkıştırılabilirlik etkisi ihmal edilir. Düzeltme Ayarlar'dan kapatılabilir.</p>
   </div>
   <div class="panel">
     <h2>Rota</h2>
@@ -265,7 +267,7 @@ details summary{cursor:pointer;font:600 1.05rem var(--f-display);letter-spacing:
     <label class="f">Dönüş yatışı (°)<input id="bank" type="number" step="1" data-k="bank" data-num></label>
   </div>
   <p class="note" style="margin-top:10px"><b>Kalkış profili:</b> Seçilen pistin eşiğinden pist yönünde "ilk düz mesafe" kadar (varsayılan 1,5 nm) tırmanarak uçulur; tırmanış IAS ve tırmanış oranıyla o noktada ulaşılan irtifa hesaplanır (yaklaşık 1500 ft). <b>Kuzey-1:</b> oradan ilk noktaya en kısa yönde dönülür (RWY 04'te sola, RWY 22'de sağa). <b>Güney-1:</b> RWY 04'te tam sola 90° dönülüp "ara düz mesafe" kadar (0,5 nm) uçulur, sonra Maksutlu'ya direkt dönülür; RWY 22'de ilk düz mesafeden sonra doğrudan Maksutlu'ya dönülür. Dönüş yarıçapı TAS ve yatış açısından; mesafe bu yol boyunca ölçülür, direkt değildir. Tırmanış ilk bacağın plan irtifasına ulaşana kadar sürer; sonraki bacaklarda irtifa değişimleri TOC/BOD olarak gösterilir.</p>
-  <p class="note"><b>Koordinat kaynakları:</b> Kuzey-1'de Pınarca, Saray, Vize, Pınarhisar, Turgutbey, Pınarbaşı (E80 kavşağı) ve Güney-1'deki tüm noktalar Google Maps'te işaretlenen koordinatlardır. Velimeşe: Wikipedia, dakika hassasiyetinde. LTBU pist eşikleri: SkyVector. Değişiklikler tarayıcıda saklanır.</p>
+  <p class="note"><b>Koordinat kaynakları:</b> Kuzey-1'de Pınarca, Saray, Vize, Pınarhisar, Turgutbey, Pınarbaşı (E80 kavşağı) ve Güney-1'deki tüm noktalar Google Maps'te işaretlenen koordinatlardır. Velimeşe, Pınarca, Vize ve Pınarhisar pilotun düzelttiği koordinatlardır. LTBU pist eşikleri: SkyVector. Değişiklikler tarayıcıda saklanır.</p>
 </details>
 
 <div id="hwWrap" hidden>
@@ -287,11 +289,11 @@ const LTBU={id:"LTBU",name:"LTBU",lat:41.1383,lon:27.9191};
 const ROUTES={
   kuzey:{name:"Kuzey-1",
     wps:[LTBU,
-      {id:"VLM",name:"Velimeşe",lat:41.2500,lon:27.8830},
-      {id:"PNC",name:"Pınarca",lat:41.338567,lon:28.016231},
+      {id:"VLM",name:"Velimeşe",lat:41.252714,lon:27.879850},
+      {id:"PNC",name:"Pınarca",lat:41.338190,lon:28.020475},
       {id:"SRY",name:"Saray",lat:41.444650,lon:27.919633},
-      {id:"VZE",name:"Vize",lat:41.573435,lon:27.766920},
-      {id:"PNH",name:"Pınarhisar",lat:41.625057,lon:27.519025},
+      {id:"VZE",name:"Vize",lat:41.571182,lon:27.767630},
+      {id:"PNH",name:"Pınarhisar",lat:41.624045,lon:27.518989},
       {id:"TRG",name:"Turgutbey",lat:41.459459,lon:27.387931},
       {id:"PNB",name:"Pınarbaşı",lat:41.3648,lon:27.6083}],
     pairs:[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,1],[1,0]],
@@ -318,7 +320,7 @@ const PAIRS=()=>RT().pairs;
 function routeDefaults(id){const R=ROUTES[id];return{wps:R.wps.map(w=>({...w})),legs:R.pairs.map((_,i)=>({alt:R.alts[i],spd:"",wd:"",ws:"",oat:"",manual:false,ata:""}))}}
 function todayStr(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
 function defaults(){return{
-  pilot:"",reg:"TC-",date:todayStr(),etd:"09:00",rwy:"04",routeId:"kuzey",spdCruise:100,spdMode:"IAS",iasClimb:74,roc:700,rod:500,qnh:1013,qnhAuto:true,vari:6,
+  pilot:"",reg:"TC-",date:todayStr(),etd:"09:00",rwy:"04",routeId:"kuzey",spdCruise:100,spdMode:"IAS",casCorr:"afm",iasClimb:74,roc:700,rod:500,qnh:1013,qnhAuto:true,vari:6,
   fuel:50,gph:9,taxi:1,reserve:30,src:"openmeteo",omModel:"ecmwf",windyKey:"",windyModel:"gfs",
   thrLat:41.1295,thrLon:27.9055,thr2Lat:41.1472,thr2Lon:27.9325,elev:570,roll:0.25,turnDist:1.5,dogleg:0.5,bank:15,
   routes:{kuzey:routeDefaults("kuzey"),guney:routeDefaults("guney")},
@@ -330,7 +332,7 @@ const LS="vfrNavlogLTBU.v4";
 let S=defaults();
 // Carry entries over from earlier versions of this page instead of starting blank; the key stays fixed from now on.
 function legacyState(){for(const k of["vfrNavlogLTBU.v3","vfrNavlogLTBU.v2","vfrNavlogLTBU.v1"]){try{const r=localStorage.getItem(k);if(!r)continue;const o=JSON.parse(r);
-  const keep={};for(const f of["pilot","reg","date","etd","rwy","spdCruise","spdMode","iasClimb","roc","rod","qnh","qnhAuto","vari","fuel","gph","taxi","reserve","src","omModel","windyKey","windyModel","thrLat","thrLon","thr2Lat","thr2Lon","elev","roll","bank","dep","arr","rmk"])if(o[f]!==undefined)keep[f]=o[f];
+  const keep={};for(const f of["pilot","reg","date","etd","rwy","spdCruise","spdMode","casCorr","iasClimb","roc","rod","qnh","qnhAuto","vari","fuel","gph","taxi","reserve","src","omModel","windyKey","windyModel","thrLat","thrLon","thr2Lat","thr2Lon","elev","roll","bank","dep","arr","rmk"])if(o[f]!==undefined)keep[f]=o[f];
   if(Array.isArray(o.legs)&&o.legs.length===ROUTES.kuzey.pairs.length)keep.routes={kuzey:{wps:routeDefaults("kuzey").wps,legs:o.legs}};
   localStorage.removeItem(k);return keep}catch(e){}}return null}
 try{let raw=localStorage.getItem(LS);let o=raw?JSON.parse(raw):legacyState();if(o){S={...S,...o,dep:{...S.dep,...(o.dep||{})},arr:{...S.arr,...(o.arr||{})},routes:{...S.routes,...(o.routes||{})}};
@@ -338,7 +340,10 @@ try{let raw=localStorage.getItem(LS);let o=raw?JSON.parse(raw):legacyState();if(
   if(!ROUTES[S.routeId])S.routeId="kuzey";
   if(S.vari===5&&!o.variUser)S.vari=6; // earlier default was 5°E; the form uses 6°E
   // renames of default waypoints carry over into saved copies
-  for(const id of Object.keys(ROUTES))ROUTES[id].wps.forEach((w,i)=>{const sw=S.routes[id].wps[i];if(sw&&sw.id!==w.id&&(sw.name==="Gölünyukarısı"))Object.assign(sw,{id:w.id,name:w.name})});}}catch(e){}
+  for(const id of Object.keys(ROUTES))ROUTES[id].wps.forEach((w,i)=>{const sw=S.routes[id].wps[i];if(sw&&sw.id!==w.id&&(sw.name==="Gölünyukarısı"))Object.assign(sw,{id:w.id,name:w.name})});
+  const OLD_WP={VLM:[41.25,27.883],PNC:[41.338567,28.016231],VZE:[41.573435,27.76692],PNH:[41.625057,27.519025]};
+  ROUTES.kuzey.wps.forEach((w,i)=>{const sw=S.routes.kuzey.wps[i],o2=OLD_WP[w.id];if(sw&&o2&&Math.abs(sw.lat-o2[0])<1e-6&&Math.abs(sw.lon-o2[1])<1e-6){sw.lat=w.lat;sw.lon=w.lon}});
+  if(!S.casCorr)S.casCorr="afm";}}catch(e){}
 let WXM=null; // Open-Meteo: {ecmwf:WX, icon:WX, gfs:WX}
 let WX=null; // {source, model, perWp:[{elev, hours:[{t, lv:[{h,u,v,T}]}]}], qnh:[{t,p}]}
 function save(){try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}}
@@ -363,8 +368,17 @@ function pressAlt(alt,qnh){return alt+145366.45*(1-Math.pow(qnh/1013.25,0.190284
 function sigma(alt,qnh,oat){const pa=pressAlt(alt,qnh);const d=Math.pow(1-6.87559e-6*pa,5.25588);return d*288.15/(oat+273.15)}
 function densAlt(s){return 145442.16*(1-Math.pow(s,0.234969))}
 const isaT=(alt,qnh)=>15-1.98*pressAlt(alt,qnh)/1000;
-const tasFromIas=(ias,alt,qnh,oat)=>ias/Math.sqrt(sigma(alt,qnh,oat));
-const iasFromTas=(tas,alt,qnh,oat)=>tas*Math.sqrt(sigma(alt,qnh,oat));
+// DA 42 NG AFM 5.3.1 Airspeed Indicator Calibration, flaps UP: [KIAS, KCAS]
+const AFM_CAS=[[80,79],[85,85],[90,90],[95,96],[100,101],[105,106],[110,112],[115,117],[120,122],[125,128],[130,133],[135,138],[140,143],[150,154],[160,164],[170,174],[180,184],[190,194]];
+function lerpTab(t,x,a,b){ // piecewise linear through table columns a->b; past either end the end correction is held constant
+  if(x<=t[0][a])return x+t[0][b]-t[0][a];const L=t[t.length-1];if(x>=L[a])return x+L[b]-L[a];
+  let i=0;while(x>t[i+1][a])i++;const p=t[i],q=t[i+1];return p[b]+(x-p[a])*(q[b]-p[b])/(q[a]-p[a])}
+const casFromIas=ias=>S.casCorr==="none"?ias:lerpTab(AFM_CAS,ias,0,1);
+const iasFromCas=cas=>S.casCorr==="none"?cas:lerpTab(AFM_CAS,cas,1,0);
+const tasFromCas=(cas,alt,qnh,oat)=>cas/Math.sqrt(sigma(alt,qnh,oat));
+const casFromTas=(tas,alt,qnh,oat)=>tas*Math.sqrt(sigma(alt,qnh,oat));
+const tasFromIas=(ias,alt,qnh,oat)=>tasFromCas(casFromIas(ias),alt,qnh,oat);
+const iasFromTas=(tas,alt,qnh,oat)=>iasFromCas(casFromTas(tas,alt,qnh,oat));
 // wind triangle; wd = direction wind blows FROM (true)
 function triangle(tc,tas,wd,ws){
   if(!(ws>0))return{wca:0,th:tc,gs:tas};
@@ -530,8 +544,8 @@ const num=v=>v===""||v==null?NaN:+v;
 const etdMin=()=>{const [h,m]=(S.etd||"00:00").split(":");return(+h)*60+(+m)};
 
 function speeds(spdInput,alt,oat){
-  const q=S.qnh;if(S.spdMode==="TAS"){const tas=spdInput;return{tas,ias:iasFromTas(tas,alt,q,oat)}}
-  const ias=spdInput;return{ias,tas:tasFromIas(ias,alt,q,oat)};
+  const q=S.qnh;if(S.spdMode==="TAS"){const tas=spdInput,cas=casFromTas(tas,alt,q,oat);return{tas,cas,ias:iasFromCas(cas)}}
+  const ias=spdInput,cas=casFromIas(ias);return{ias,cas,tas:tasFromCas(cas,alt,q,oat)};
 }
 let LAST=null;
 function compute(){
@@ -599,7 +613,7 @@ function render(res){
   res.forEach(r=>{const i=r.i;
     $("fn"+i).textContent=WPS()[r.fi].name.toLocaleUpperCase("tr");$("tn"+i).textContent=WPS()[r.ti].name.toLocaleUpperCase("tr");
     $("spd"+i).placeholder=String(S.spdCruise);
-    $("spdH"+i).textContent=S.spdMode==="TAS"?`IAS ${Math.round(r.sp.ias)}`:`TAS ${Math.round(r.sp.tas)}`;
+    $("spdH"+i).textContent=(S.spdMode==="TAS"?`IAS ${Math.round(r.sp.ias)}`:`TAS ${Math.round(r.sp.tas)}`)+(S.casCorr!=="none"?` · CAS ${Math.round(r.sp.cas)}`:"");
     $("tc"+i).textContent=f0(r.tc);$("v"+i).textContent=vTxt;$("mc"+i).textContent=f0(n360(r.tc-V));
     const L=LEGS()[i];
     for(const k of["wd","ws","oat"]){const el=$(k+i);if(document.activeElement!==el)el.value=L[k]??"";
@@ -690,8 +704,8 @@ async function doFetch(){
 function conv(src){
   const a=+$("cAlt").value,q=+$("cQnh").value,t=+$("cOat").value;if(![a,q,t].every(isFinite))return;
   const s=sigma(a,q,t);
-  if(src==="tas"){const tas=+$("cTas").value;if(isFinite(tas))$("cIas").value=Math.round(iasFromTas(tas,a,q,t))}
-  else{const ias=+$("cIas").value;if(isFinite(ias))$("cTas").value=Math.round(tasFromIas(ias,a,q,t))}
+  if(src==="tas"){const tas=+$("cTas").value;if(isFinite(tas)){const cas=casFromTas(tas,a,q,t);$("cCas").value=Math.round(cas);$("cIas").value=Math.round(iasFromCas(cas))}}
+  else{const ias=+$("cIas").value;if(isFinite(ias)){const cas=casFromIas(ias);$("cCas").value=Math.round(cas);$("cTas").value=Math.round(tasFromCas(cas,a,q,t))}}
   const pa=pressAlt(a,q),da=densAlt(s);
   $("cOut").innerHTML=`Basınç irtifası <b class="out">${Math.round(pa)} ft</b> · Yoğunluk irtifası <b class="out">${Math.round(da)} ft</b> · ISA sıcaklığı <b class="out">${isaT(a,q).toFixed(1)} °C</b> · ρ/ρ₀ <b class="out">${s.toFixed(3)}</b>`;
 }
@@ -815,7 +829,7 @@ function init(){
   $("btnHand").addEventListener("click",hwOpen);$("hwClose").addEventListener("click",hwClose);$("hwPrint").addEventListener("click",()=>window.print());
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("hwWrap").hidden)hwClose()});
   if(/claude|anthropic/.test(location.hostname))$("btnPrint").hidden=true;
-  ["cAlt","cQnh","cOat","cIas"].forEach(id=>$(id).addEventListener("input",()=>conv("ias")));$("cTas").addEventListener("input",()=>conv("tas"));
+  ["cAlt","cQnh","cOat","cIas"].forEach(id=>$(id).addEventListener("input",()=>conv("ias")));$("casCorr").addEventListener("change",()=>conv("ias"));$("cTas").addEventListener("input",()=>conv("tas"));
   conv("ias");compute();
 }
 init();
