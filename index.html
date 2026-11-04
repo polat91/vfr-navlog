@@ -159,7 +159,7 @@ details summary{cursor:pointer;font:600 1.05rem var(--f-display);letter-spacing:
     <label class="f">Tırmanış IAS (kt)<input id="iasClimb" type="number" step="1" data-k="iasClimb" data-num></label>
     <label class="f">Tırmanış oranı (ft/dk)<input id="roc" type="number" step="50" data-k="roc" data-num></label>
     <label class="f">Alçalma oranı (ft/dk)<input id="rod" type="number" step="50" data-k="rod" data-num></label>
-    <label class="f">QNH (hPa)<input id="qnh" type="number" step="1" data-k="qnh" data-num></label>
+    <label class="f">QNH (hPa)<input id="qnh" type="number" step="any" data-k="qnh" data-num><small id="qnhNote" style="display:block;font-size:.72rem;line-height:1.3;color:var(--muted);margin-top:4px"></small></label>
     <label class="f">Varyasyon (°E +, °W −)<input id="vari" type="number" step="0.5" data-k="vari" data-num></label>
     <label class="f">Kullanılabilir yakıt (US gal)<input id="fuel" type="number" step="0.5" data-k="fuel" data-num></label>
     <label class="f">Yakıt sarfiyatı (GPH)<input id="gph" type="number" step="0.1" data-k="gph" data-num></label>
@@ -547,10 +547,19 @@ function speeds(spdInput,alt,oat){
   const q=S.qnh;if(S.spdMode==="TAS"){const tas=spdInput,cas=casFromTas(tas,alt,q,oat);return{tas,cas,ias:iasFromCas(cas)}}
   const ias=spdInput,cas=casFromIas(ias);return{ias,cas,tas:tasFromCas(cas,alt,q,oat)};
 }
+// note under the QNH field: says where the value used in the IAS/CAS/TAS calculation came from
+function qnhNoteUpd(qWx){const el=document.getElementById("qnhNote");if(!el)return;
+  if(qWx&&S.qnhAuto)el.innerHTML=`Çekilen hava verisine göre hesaplandı: LTBU, ETD saatinde, ${WX.source} ${WX.model}, ${String(S.qnhWx).replace(".",",")} hPa. İstersen değiştirebilirsin.`;
+  else if(qWx)el.innerHTML=`Elle girdiğin değerle hesaplanıyor. Çekilen değer ${String(S.qnhWx).replace(".",",")} hPa. <a href="#" id="qnhBack">Çekilen değere dön</a>`;
+  else el.textContent="Hava verisi çekilmedi; hesap bu alandaki değerle yapılıyor.";
+  const cq=document.getElementById("cQnh");if(cq&&!cq.dataset.user&&cq.value!=String(S.qnh)){cq.value=S.qnh;conv("ias")} // converter follows the plan's QNH until edited there
+  const bk=document.getElementById("qnhBack");if(bk)bk.onclick=e=>{e.preventDefault();S.qnhAuto=true;compute();save()}}
 let LAST=null;
 function compute(){
   const res=[];let clock=etdMin();
-  if(WX&&S.qnhAuto){const q=qnhAt(clock);if(q){S.qnh=Math.round(q);document.getElementById("qnh").value=S.qnh}}
+  const qWx=WX?qnhAt(clock):null;if(qWx)S.qnhWx=Math.round(qWx*10)/10;
+  if(qWx&&S.qnhAuto){S.qnh=S.qnhWx;document.getElementById("qnh").value=S.qnh}
+  qnhNoteUpd(qWx);
   let prevAlt=S.elev;
   PAIRS().forEach(([fi,ti],i)=>{
     const L=LEGS()[i];const from=WPS()[fi],to=WPS()[ti];const alt=+L.alt||1500;
@@ -692,7 +701,7 @@ async function doFetch(){
   try{
     if(S.src==="windy"){WXM=null;WX=await fetchWindy()}else{WXM=await fetchOpenMeteo();WX=WXM[S.omModel]||Object.values(WXM)[0]}
     LEGS().forEach(L=>L.manual=false);S.qnhAuto=true;save();compute();
-    st.className="status ok";st.textContent=`${WX.source} (${WX.model}) verisi yüklendi: ${S.date.split("-").reverse().join(".")} · ETD ${S.etd} yerel. QNH tahmini LTBU ${S.qnh} hPa.`+(OM_ERRORS.length?" Alınamayan modeller: "+OM_ERRORS.join("; "):"");
+    st.className="status ok";st.textContent=`${WX.source} (${WX.model}) verisi yüklendi: ${S.date.split("-").reverse().join(".")} · ETD ${S.etd} yerel. QNH tahmini LTBU ${String(S.qnh).replace(".",",")} hPa.`+(OM_ERRORS.length?" Alınamayan modeller: "+OM_ERRORS.join("; "):"");
   }catch(e){
     const blocked=e instanceof TypeError;
     if(S.src==="windy"&&!blocked){st.className="status err";st.textContent=e.message+" Open-Meteo deneniyor…";
@@ -796,7 +805,7 @@ function hwSheet(){
   legs1.forEach((r,i)=>{p1+=hwRow(HW.rows1[i],HW.rows1[i+1],r,i,i===0?both:null)});
   const Dp=HW.dep;const strip=v=>(v||"").replace(/\s*\/.*ft$/,"");
   const last=res[res.length-1];
-  const depVals={icao:strip(S.dep.icao)||"LTBU",qnh:S.dep.qnh||String(S.qnh),xpdr:S.dep.xpdr,gnd:S.dep.gnd,twr:S.dep.twr,app:S.dep.app,vor:S.dep.vor,ils:S.dep.ils,
+  const depVals={icao:strip(S.dep.icao)||"LTBU",qnh:S.dep.qnh||String(Math.round(S.qnh)),xpdr:S.dep.xpdr,gnd:S.dep.gnd,twr:S.dep.twr,app:S.dep.app,vor:S.dep.vor,ils:S.dep.ils,
     wind:S.dep.wind||(isFinite(first.wd)?`${f0(first.wd)}/${Math.round(first.ws)}kt`:"")};
   const arrVals={icao:strip(S.arr.icao)||"LTBU",qnh:S.arr.qnh,xpdr:S.arr.xpdr,gnd:S.arr.gnd,twr:S.arr.twr,app:S.arr.app,vor:S.arr.vor,ils:S.arr.ils,
     wind:S.arr.wind||(isFinite(last.wd)?`${f0(last.wd)}/${Math.round(last.ws)}kt`:"")};
@@ -829,7 +838,7 @@ function init(){
   $("btnHand").addEventListener("click",hwOpen);$("hwClose").addEventListener("click",hwClose);$("hwPrint").addEventListener("click",()=>window.print());
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("hwWrap").hidden)hwClose()});
   if(/claude|anthropic/.test(location.hostname))$("btnPrint").hidden=true;
-  ["cAlt","cQnh","cOat","cIas"].forEach(id=>$(id).addEventListener("input",()=>conv("ias")));$("casCorr").addEventListener("change",()=>conv("ias"));$("cTas").addEventListener("input",()=>conv("tas"));
+  ["cAlt","cQnh","cOat","cIas"].forEach(id=>$(id).addEventListener("input",()=>conv("ias")));$("cQnh").addEventListener("input",()=>{$("cQnh").dataset.user=1});$("casCorr").addEventListener("change",()=>conv("ias"));$("cTas").addEventListener("input",()=>conv("tas"));
   conv("ias");compute();
 }
 init();
