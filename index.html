@@ -149,20 +149,21 @@ details summary{cursor:pointer;font:600 1.05rem var(--f-display);letter-spacing:
   <div class="fields">
     <label class="f">Seyrüsefer<select id="routeId"><option value="kuzey">Kuzey-1</option><option value="guney">Güney-1</option></select></label>
     <label class="f">Pilot<input id="pilot" data-k="pilot"></label>
-    <label class="f">Tescil<input id="reg" data-k="reg"></label>
+    <label class="f">Uçak<span id="acSlot1"></span></label>
     <label class="f">Tarih (gün/ay/yıl)<input id="date" type="date" data-k="date"></label>
     <label class="f">ETD kalkış (yerel, UTC+3)<input id="etd" type="time" data-k="etd"></label>
     <label class="f">Kalkış pisti<select id="rwy" data-k="rwy"><option value="04">RWY 04</option><option value="22">RWY 22</option></select></label>
     <label class="f">Seyir hızı<input id="spdCruise" type="number" step="1" data-k="spdCruise" data-num></label>
     <label class="f">Girilen hız tipi<select id="spdMode" data-k="spdMode"><option value="IAS">IAS</option><option value="TAS">TAS</option></select></label>
-    <label class="f">IAS → CAS düzeltmesi<select id="casCorr" data-k="casCorr"><option value="afm">DA 42 NG AFM tablosu (flap UP)</option><option value="none">Yok (IAS = CAS)</option></select></label>
+    <label class="f">Motor gücü (LOAD %)<span id="ldSlot1"></span></label>
+    <label class="f">IAS → CAS düzeltmesi<select id="casCorr" data-k="casCorr"><option value="afm">Seçili uçağın AFM tablosu (flap UP)</option><option value="none">Yok (IAS = CAS)</option></select></label>
     <label class="f">Tırmanış IAS (kt)<input id="iasClimb" type="number" step="1" data-k="iasClimb" data-num></label>
     <label class="f">Tırmanış oranı (ft/dk)<input id="roc" type="number" step="50" data-k="roc" data-num></label>
     <label class="f">Alçalma oranı (ft/dk)<input id="rod" type="number" step="50" data-k="rod" data-num></label>
-    <label class="f">QNH (hPa)<input id="qnh" type="number" step="any" data-k="qnh" data-num><small id="qnhNote" style="display:block;font-size:.72rem;line-height:1.3;color:var(--muted);margin-top:4px"></small></label>
+    <label class="f">QNH (hPa)<input id="qnh" type="number" step="any" data-k="qnh" data-num><small id="qnhNote" style="display:block;font-size:.72rem;line-height:1.3;color:var(--muted);margin-top:4px;text-transform:none;letter-spacing:0;font-weight:400"></small></label>
     <label class="f">Varyasyon (°E +, °W −)<input id="vari" type="number" step="0.5" data-k="vari" data-num></label>
     <label class="f">Kullanılabilir yakıt (US gal)<input id="fuel" type="number" step="0.5" data-k="fuel" data-num></label>
-    <label class="f">Yakıt sarfiyatı (GPH)<input id="gph" type="number" step="0.1" data-k="gph" data-num></label>
+    <label class="f">Yakıt sarfiyatı (US gal/saat, AFM)<input id="gph" type="text" readonly tabindex="-1" style="background:var(--bg-soft,#f3f5f8)"><small id="gphNote" style="display:block;font-size:.72rem;line-height:1.3;color:var(--muted);margin-top:4px;text-transform:none;letter-spacing:0;font-weight:400"></small></label>
     <label class="f">Taksi/kalkış yakıtı (gal)<input id="taxi" type="number" step="0.1" data-k="taxi" data-num></label>
     <label class="f">Yedek süre (dk)<input id="reserve" type="number" step="5" data-k="reserve" data-num></label>
   </div>
@@ -232,17 +233,20 @@ details summary{cursor:pointer;font:600 1.05rem var(--f-display);letter-spacing:
 
 <section class="two">
   <div class="panel">
-    <h2>IAS ↔ CAS ↔ TAS hesaplayıcı</h2>
+    <h2>Performans hesaplayıcı (AFM)</h2>
     <div class="conv">
+      <label class="f">Uçak<span id="acSlot2"></span></label>
+      <label class="f">LOAD (%)<span id="ldSlot2"></span></label>
       <label class="f">İrtifa (ft)<input id="cAlt" type="number" value="2500"></label>
       <label class="f">QNH (hPa)<input id="cQnh" type="number" value="1013"></label>
       <label class="f">OAT (°C)<input id="cOat" type="number" value="10"></label>
-      <label class="f">IAS (kt)<input id="cIas" type="number" value="100"></label>
+      <label class="f">IAS (kt)<input id="cIas" type="number" value="120"></label>
       <label class="f">CAS (kt)<input id="cCas" type="number" value="" readonly tabindex="-1"></label>
       <label class="f">TAS (kt)<input id="cTas" type="number" value=""></label>
     </div>
     <p class="note" id="cOut" style="margin-top:10px"></p>
-    <p class="note">Basınç irtifası = irtifa + (1013,25 − QNH) düzeltmesi; yoğunluk ISA standart atmosferinden ve OAT'den bulunur, önce IAS, DA 42 NG AFM bölüm 5.3.1 hava hızı kalibrasyon tablosundan (flap UP) CAS'a çevrilir, sonra TAS = CAS / √(ρ/ρ₀). Tablo noktaları arasında doğrusal ara değer alınır. Bu hızlarda sıkıştırılabilirlik etkisi ihmal edilir. Düzeltme Ayarlar'dan kapatılabilir.</p>
+    <p class="note" id="cPerf"></p>
+    <p class="note">Basınç irtifası = irtifa + (1013,25 − QNH) düzeltmesi; yoğunluk ISA standart atmosferinden ve OAT'den bulunur, önce IAS, seçili uçağın AFM'sindeki 5.3.1 hava hızı kalibrasyon tablosundan (flap UP) CAS'a çevrilir, sonra TAS = CAS / √(ρ/ρ₀). Tablo noktaları arasında doğrusal ara değer alınır. Bu hızlarda sıkıştırılabilirlik etkisi ihmal edilir. Düzeltme Ayarlar'dan kapatılabilir.</p>
   </div>
   <div class="panel">
     <h2>Rota</h2>
@@ -320,8 +324,8 @@ const PAIRS=()=>RT().pairs;
 function routeDefaults(id){const R=ROUTES[id];return{wps:R.wps.map(w=>({...w})),legs:R.pairs.map((_,i)=>({alt:R.alts[i],spd:"",wd:"",ws:"",oat:"",manual:false,ata:""}))}}
 function todayStr(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
 function defaults(){return{
-  pilot:"",reg:"TC-",date:todayStr(),etd:"09:00",rwy:"04",routeId:"kuzey",spdCruise:100,spdMode:"IAS",casCorr:"afm",iasClimb:74,roc:700,rod:500,qnh:1013,qnhAuto:true,vari:6,
-  fuel:50,gph:9,taxi:1,reserve:30,src:"openmeteo",omModel:"ecmwf",windyKey:"",windyModel:"gfs",
+  pilot:"",reg:"TC-",date:todayStr(),etd:"09:00",rwy:"04",routeId:"kuzey",spdCruise:120,spdMode:"IAS",casCorr:"afm",ac:"myr",load:60,iasClimb:74,roc:700,rod:500,qnh:1013,qnhAuto:true,vari:6,
+  fuel:50,gph:10.4,taxi:1,reserve:30,src:"openmeteo",omModel:"ecmwf",windyKey:"",windyModel:"gfs",
   thrLat:41.1295,thrLon:27.9055,thr2Lat:41.1472,thr2Lon:27.9325,elev:570,roll:0.25,turnDist:1.5,dogleg:0.5,bank:15,
   routes:{kuzey:routeDefaults("kuzey"),guney:routeDefaults("guney")},
   dep:{icao:"LTBU / 570 ft",qnh:"",xpdr:"",gnd:"121.900",twr:"120.375",app:"119.925",vor:"114.80",ils:"110.50",wind:""},
@@ -332,7 +336,7 @@ const LS="vfrNavlogLTBU.v4";
 let S=defaults();
 // Carry entries over from earlier versions of this page instead of starting blank; the key stays fixed from now on.
 function legacyState(){for(const k of["vfrNavlogLTBU.v3","vfrNavlogLTBU.v2","vfrNavlogLTBU.v1"]){try{const r=localStorage.getItem(k);if(!r)continue;const o=JSON.parse(r);
-  const keep={};for(const f of["pilot","reg","date","etd","rwy","spdCruise","spdMode","casCorr","iasClimb","roc","rod","qnh","qnhAuto","vari","fuel","gph","taxi","reserve","src","omModel","windyKey","windyModel","thrLat","thrLon","thr2Lat","thr2Lon","elev","roll","bank","dep","arr","rmk"])if(o[f]!==undefined)keep[f]=o[f];
+  const keep={};for(const f of["pilot","reg","date","etd","rwy","spdCruise","spdMode","casCorr","ac","load","iasClimb","roc","rod","qnh","qnhAuto","vari","fuel","gph","taxi","reserve","src","omModel","windyKey","windyModel","thrLat","thrLon","thr2Lat","thr2Lon","elev","roll","bank","dep","arr","rmk"])if(o[f]!==undefined)keep[f]=o[f];
   if(Array.isArray(o.legs)&&o.legs.length===ROUTES.kuzey.pairs.length)keep.routes={kuzey:{wps:routeDefaults("kuzey").wps,legs:o.legs}};
   localStorage.removeItem(k);return keep}catch(e){}}return null}
 try{let raw=localStorage.getItem(LS);let o=raw?JSON.parse(raw):legacyState();if(o){S={...S,...o,dep:{...S.dep,...(o.dep||{})},arr:{...S.arr,...(o.arr||{})},routes:{...S.routes,...(o.routes||{})}};
@@ -343,7 +347,10 @@ try{let raw=localStorage.getItem(LS);let o=raw?JSON.parse(raw):legacyState();if(
   for(const id of Object.keys(ROUTES))ROUTES[id].wps.forEach((w,i)=>{const sw=S.routes[id].wps[i];if(sw&&sw.id!==w.id&&(sw.name==="Gölünyukarısı"))Object.assign(sw,{id:w.id,name:w.name})});
   const OLD_WP={VLM:[41.25,27.883],PNC:[41.338567,28.016231],VZE:[41.573435,27.76692],PNH:[41.625057,27.519025]};
   ROUTES.kuzey.wps.forEach((w,i)=>{const sw=S.routes.kuzey.wps[i],o2=OLD_WP[w.id];if(sw&&o2&&Math.abs(sw.lat-o2[0])<1e-6&&Math.abs(sw.lon-o2[1])<1e-6){sw.lat=w.lat;sw.lon=w.lon}});
-  if(!S.casCorr)S.casCorr="afm";}}catch(e){}
+  if(!S.casCorr)S.casCorr="afm";
+  // cruise plan moved to 120 KIAS at 60 % power (AFM 5.3.10: 10.4 US gal/h both engines); saved copies still on the old defaults follow once
+  if(!AC[S.ac]||!AC[S.ac].ff)S.ac="myr";if(!isFinite(+S.load))S.load=60;S.load=+S.load;
+  if(!S.cruise60){if(S.spdCruise===100&&S.spdMode==="IAS")S.spdCruise=120;if(S.gph===9)S.gph=10.4;S.cruise60=true}}}catch(e){}
 let WXM=null; // Open-Meteo: {ecmwf:WX, icon:WX, gfs:WX}
 let WX=null; // {source, model, perWp:[{elev, hours:[{t, lv:[{h,u,v,T}]}]}], qnh:[{t,p}]}
 function save(){try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}}
@@ -369,12 +376,39 @@ function sigma(alt,qnh,oat){const pa=pressAlt(alt,qnh);const d=Math.pow(1-6.8755
 function densAlt(s){return 145442.16*(1-Math.pow(s,0.234969))}
 const isaT=(alt,qnh)=>15-1.98*pressAlt(alt,qnh)/1000;
 // DA 42 NG AFM 5.3.1 Airspeed Indicator Calibration, flaps UP: [KIAS, KCAS]
-const AFM_CAS=[[80,79],[85,85],[90,90],[95,96],[100,101],[105,106],[110,112],[115,117],[120,122],[125,128],[130,133],[135,138],[140,143],[150,154],[160,164],[170,174],[180,184],[190,194]];
+const AFM_CAS_NG=[[80,79],[85,85],[90,90],[95,96],[100,101],[105,106],[110,112],[115,117],[120,122],[125,128],[130,133],[135,138],[140,143],[150,154],[160,164],[170,174],[180,184],[190,194]];
 function lerpTab(t,x,a,b){ // piecewise linear through table columns a->b; past either end the end correction is held constant
   if(x<=t[0][a])return x+t[0][b]-t[0][a];const L=t[t.length-1];if(x>=L[a])return x+L[b]-L[a];
   let i=0;while(x>t[i+1][a])i++;const p=t[i],q=t[i+1];return p[b]+(x-p[a])*(q[b]-p[b])/(q[a]-p[a])}
-const casFromIas=ias=>S.casCorr==="none"?ias:lerpTab(AFM_CAS,ias,0,1);
-const iasFromCas=cas=>S.casCorr==="none"?cas:lerpTab(AFM_CAS,cas,1,0);
+/* Aircraft. Every number below is copied from the aircraft's AFM; nothing is estimated.
+   ff: 5.3.2 fuel flow, ONE engine [LOAD %, US gal/h]; the plan uses both engines (x2).
+   cruise: 5.3.10 cruise performance, 1999 kg, flaps UP, gear UP: {pressure alt ft: {LOAD %: TAS kt at ISA-10, ISA, ISA+10, ISA+20, ISA+30}};
+   null where the AFM shows a lower power than the row (power-limited). */
+const AC={
+  myr:{reg:"TC-MYR",type:"DA 42 NG",doc:"DA 42 NG AFM Doc. 7.01.15-E Rev. 9",cas:AFM_CAS_NG,
+    ff:[[30,2.9],[35,3.3],[40,3.6],[45,4.0],[50,4.4],[55,4.8],[60,5.2],[65,5.6],[70,6.0],[75,6.5],[80,7.0],[85,7.5],[90,8.0],[92,8.3],[100,9.3]],
+    cruise:{2000:{92:[164,165,166,167,null],75:[148,149,150,151,152],60:[131,131,132,133,134],45:[106,106,106,107,107]},
+            4000:{92:[166,167,168,169,null],75:[150,151,152,153,154],60:[132,133,134,134,135],45:[106,107,107,107,107]},
+            6000:{92:[167,169,170,171,null],75:[152,153,154,155,155],60:[133,134,135,136,137],45:[107,107,107,107,107]},
+            8000:{92:[169,170,172,173,null],75:[153,154,155,156,157],60:[136,137,138,139,140],45:[114,114,114,115,115]},
+            10000:{92:[171,172,174,175,null],75:[155,156,157,158,160],60:[139,140,141,142,143],45:[121,122,122,123,123]},
+            12000:{92:[173,173,174,175,175],75:[157,158,159,161,162],60:[143,144,144,145,146],45:[127,128,129,129,130]}}},
+  srn:{reg:"TC-SRN",type:"DA 42 TDI",doc:"DA 42 AFM Doc. 7.01.05-E Rev. 10",cas:null,ff:null,cruise:null} // the TDI AFM gives these as diagrams; values to be read from the PDF pages
+};
+const ACX=()=>AC[S.ac]&&AC[S.ac].ff?AC[S.ac]:AC.myr;
+const acGph=(ac,load)=>2*lerpTab(ac.ff,load,0,1); // both engines
+// AFM cruise TAS at a load, pressure altitude and ISA deviation (bilinear in altitude and temperature, linear between load rows)
+function afmTas(ac,load,pa,dIsa){if(!ac.cruise)return null;
+  const alts=Object.keys(ac.cruise).map(Number).sort((a,b)=>a-b);const pc=Math.min(Math.max(pa,alts[0]),alts[alts.length-1]);
+  let i=0;while(i<alts.length-2&&pc>alts[i+1])i++;const a0=alts[i],a1=alts[i+1],fa=(pc-a0)/(a1-a0);
+  const ti=Math.min(Math.max((dIsa+10)/10,0),4);const t0=Math.min(Math.floor(ti),3),ft=ti-t0;
+  const atLoad=(alt,ld)=>{const r=ac.cruise[alt][ld];if(!r)return null;const v0=r[t0],v1=r[t0+1];if(v0==null||v1==null)return v0??v1;return v0+(v1-v0)*ft};
+  const loads=Object.keys(ac.cruise[a0]).map(Number).sort((a,b)=>a-b);if(load<loads[0]||load>loads[loads.length-1])return null;
+  let j=0;while(j<loads.length-2&&load>loads[j+1])j++;const l0=loads[j],l1=loads[j+1],fl=(load-l0)/(l1-l0);
+  const v=alt=>{const x=atLoad(alt,l0),y=atLoad(alt,l1);return x==null||y==null?null:x+(y-x)*fl};
+  const x=v(a0),y=v(a1);return x==null||y==null?null:x+(y-x)*fa}
+const casFromIas=ias=>S.casCorr==="none"?ias:lerpTab(ACX().cas,ias,0,1);
+const iasFromCas=cas=>S.casCorr==="none"?cas:lerpTab(ACX().cas,cas,1,0);
 const tasFromCas=(cas,alt,qnh,oat)=>cas/Math.sqrt(sigma(alt,qnh,oat));
 const casFromTas=(tas,alt,qnh,oat)=>tas*Math.sqrt(sigma(alt,qnh,oat));
 const tasFromIas=(ias,alt,qnh,oat)=>tasFromCas(casFromIas(ias),alt,qnh,oat);
@@ -554,8 +588,13 @@ function qnhNoteUpd(qWx){const el=document.getElementById("qnhNote");if(!el)retu
   else el.textContent="Hava verisi çekilmedi; hesap bu alandaki değerle yapılıyor.";
   const cq=document.getElementById("cQnh");if(cq&&!cq.dataset.user&&cq.value!=String(S.qnh)){cq.value=S.qnh;conv("ias")} // converter follows the plan's QNH until edited there
   const bk=document.getElementById("qnhBack");if(bk)bk.onclick=e=>{e.preventDefault();S.qnhAuto=true;compute();save()}}
+function acSync(){const ac=ACX();S.ac=AC[S.ac]&&AC[S.ac].ff?S.ac:"myr";S.reg=ac.reg;S.gph=Math.round(acGph(ac,S.load)*10)/10;
+  const g=document.getElementById("gph");if(g)g.value=String(S.gph).replace(".",",");
+  const n=document.getElementById("gphNote");if(n)n.textContent=`${ac.type} AFM 5.3.2: motor başına ${String(lerpTab(ac.ff,S.load,0,1).toFixed(1)).replace(".",",")} × 2. Uçak ve LOAD seçiminden gelir.`;
+  document.querySelectorAll("[data-k=ac],[data-k=load]").forEach(el=>{const v=String(S[el.dataset.k]);if(el.value!==v)el.value=v})}
 let LAST=null;
 function compute(){
+  acSync();
   const res=[];let clock=etdMin();
   const qWx=WX?qnhAt(clock):null;if(qWx)S.qnhWx=Math.round(qWx*10)/10;
   if(qWx&&S.qnhAuto){S.qnh=S.qnhWx;document.getElementById("qnh").value=S.qnh}
@@ -686,10 +725,15 @@ function buildCoords(){
   links();
   WPS().forEach((w,i)=>{for(const [p,k] of[["la","lat"],["lo","lon"]]){$(p+i).addEventListener("input",e=>{const v=parseFloat(e.target.value);if(isFinite(v)){w[k]=v;WX=null;WXM=null;save();links();compute()}})}});
 }
+function acSelects(){ // aircraft and LOAD selects appear in the flight settings and in the calculator; both edit the same values
+  const ac=ACX();const acH=`<select data-k="ac"><option value="myr">TC-MYR · DA 42 NG</option><option value="srn" disabled>TC-SRN · DA 42 TDI (AFM tabloları bekleniyor)</option></select>`;
+  const ldH=`<select data-k="load" data-num>${ac.ff.map(([l])=>`<option value="${l}">%${l}</option>`).join("")}</select>`;
+  for(const n of[1,2]){$("acSlot"+n).innerHTML=acH;$("ldSlot"+n).innerHTML=ldH}}
 function bindFields(){
+  acSelects();
   document.querySelectorAll("[data-k]").forEach(el=>{const k=el.dataset.k;el.value=S[k]??"";
     el.addEventListener("input",()=>{let v=el.value;if(el.hasAttribute("data-num")){v=parseFloat(v);if(!isFinite(v))return}
-      S[k]=v;if(k==="qnh")S.qnhAuto=false;if(k==="vari")S.variUser=true;if(k==="date"){WX=null;WXM=null}save();if(k!=="windyKey"&&k!=="pilot"&&k!=="reg"&&k!=="rmk")compute()})});
+      S[k]=v;if(k==="qnh")S.qnhAuto=false;if(k==="vari")S.variUser=true;if(k==="ac"||k==="load"){acSync();setTimeout(()=>conv("ias"))}if(k==="date"){WX=null;WXM=null}save();if(k!=="windyKey"&&k!=="pilot"&&k!=="reg"&&k!=="rmk")compute()})});
   const src=S.src==="windy"?$("srcWindy"):$("srcOM");src.checked=true;
   const showW=()=>{$("windyBox").hidden=S.src!=="windy";$("omBox").hidden=S.src==="windy"};showW();
   $("omModel").addEventListener("change",()=>{if(WXM&&WXM[S.omModel]){WX=WXM[S.omModel];LEGS().forEach(L=>L.manual=false);compute();
@@ -716,6 +760,8 @@ function conv(src){
   if(src==="tas"){const tas=+$("cTas").value;if(isFinite(tas)){const cas=casFromTas(tas,a,q,t);$("cCas").value=Math.round(cas);$("cIas").value=Math.round(iasFromCas(cas))}}
   else{const ias=+$("cIas").value;if(isFinite(ias)){const cas=casFromIas(ias);$("cCas").value=Math.round(cas);$("cTas").value=Math.round(tasFromCas(cas,a,q,t))}}
   const pa=pressAlt(a,q),da=densAlt(s);
+  {const ac=ACX(),tas=+$("cTas").value,ff=acGph(ac,S.load),at=afmTas(ac,S.load,pa,t-isaT(a,q));
+   $("cPerf").innerHTML=`<b>${ac.reg} · LOAD %${S.load}:</b> yakıt akışı <b class="out">${ff.toFixed(1).replace(".",",")} US gal/saat</b> (iki motor) · `+(at?`AFM seyir tablosuna göre bu LOAD'da TAS <b class="out">${Math.round(at)} kt</b>`+(isFinite(tas)&&Math.abs(tas-at)>8?` <span style="color:var(--warn,#b45309)">(girdiğin hız ${Math.round(tas)} kt TAS ediyor, bu LOAD ile tutarlı değil)</span>`:""):"AFM seyir tablosu bu LOAD ve irtifa için değer vermiyor")+(pa<2000?". Tablo 2000 ft'ten başladığı için 2000 ft değerleri kullanıldı":"")+`. Tablo 1999 kg için.`}
   $("cOut").innerHTML=`Basınç irtifası <b class="out">${Math.round(pa)} ft</b> · Yoğunluk irtifası <b class="out">${Math.round(da)} ft</b> · ISA sıcaklığı <b class="out">${isaT(a,q).toFixed(1)} °C</b> · ρ/ρ₀ <b class="out">${s.toFixed(3)}</b>`;
 }
 /* ---------- handwritten sheet ---------- */
@@ -799,7 +845,7 @@ function hwSheet(){
   p1+=hwBox(950,176,1125,215,dateTxt,"l lg","date");
   p1+=hwBox(145,219,320,258,"LTBU","l lg","from");p1+=hwBox(370,219,590,258,"LTBU","l lg","to");
   p1+=hwBox(660,219,840,258,hwNum(dist)+" NM","l lg","dist"); // ETD/ATD, usable fuel and est. remaining are left for the pilot to fill by hand
-  p1+=hwBox(360,264,465,312,hwNum(S.gph)+" USGal","l","gph");
+  p1+=hwBox(358,262,412,312,String(+(+S.gph).toFixed(1)).replace(".",","),"","gph");p1+=hwBox(410,268,468,312,"USGal","sm","gphu"); // number and unit in separate boxes so the number keeps full size
   p1+=hwBox(655,264,790,312,hwNum(req),"l lg","req");
   const legs1=res.slice(0,7),legs2=res.slice(7);
   legs1.forEach((r,i)=>{p1+=hwRow(HW.rows1[i],HW.rows1[i+1],r,i,i===0?both:null)});
